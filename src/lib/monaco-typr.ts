@@ -208,7 +208,18 @@ export const typrMonarchLanguage: languages.IMonarchLanguage = {
 
     // Type annotation context (after :)
     type_annotation: [
+      // Lowercase type keywords (int, num, char, bool)
+      [/[a-z][a-zA-Z0-9_]*/, {
+        cases: {
+          '@typeKeywords': 'type',
+          '@default': { token: '@rematch', next: '@pop' },
+        },
+      }],
+      // Uppercase types (Vec, Option, String, etc.)
       [/[A-Z][a-zA-Z0-9_]*/, 'type'],
+      // `<-` is the assignment operator, NOT a generic — pop back to root
+      [/<-/, { token: '@rematch', next: '@pop' }],
+      // `<` alone opens a generic type parameter
       [/</, '@brackets', '@type_generic'],
       [/\|/, 'operator'], // Union types
       [/,/, 'delimiter'],
