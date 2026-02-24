@@ -48,6 +48,41 @@ let numbers <- c(1, 2, 3, 4, 5);
 numbers`
   },
   {
+    name: 'Advanced types',
+    description: 'Working with Advanced types',
+    code: `# Type definition
+type Point <- {
+	x: int,
+	y: int
+};
+
+# Constructor for the Point type
+let new_point <- fn(x: int, y: int): Point {
+	list(x = x, y = y)
+};
+
+# print function
+let print <- fn(p: Point): Empty {
+  cat("Point<", p$x, ",", p$y, ">", sep="");
+  invisible(p);
+};
+
+# scaling function
+let scale <- fn(p: Point, n: int): Point {
+	new_point(p$x * n, p$y * n)
+};
+
+# multiplication operator for points
+let \`*\` <- fn(p: Point, n: int): Point {
+	scale(p, n)
+};
+
+# creating a vector of points in TypR
+let points <- [new_point(1, 2), new_point(3, 4), new_point(5, 6)];
+
+points`
+  },
+  {
     name: 'Data Analysis',
     description: 'Simple data analysis example',
     code: `# Simple data analysis

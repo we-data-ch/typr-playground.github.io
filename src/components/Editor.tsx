@@ -21,6 +21,11 @@ export function Editor({ value, onChange, theme, onRun }: EditorProps) {
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
 
+  // Use a ref to always have the latest onRun callback,
+  // avoiding stale closure in Monaco editor actions
+  const onRunRef = useRef(onRun);
+  onRunRef.current = onRun;
+
   // Register language before mount
   const handleBeforeMount: BeforeMount = useCallback((monaco) => {
     if (!languageRegistered) {
@@ -39,7 +44,7 @@ export function Editor({ value, onChange, theme, onRun }: EditorProps) {
       id: 'run-code',
       label: 'Run Code',
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-      run: () => onRun?.(),
+      run: () => onRunRef.current?.(),
     });
 
     // Add keyboard shortcut for formatting (future)
@@ -55,7 +60,7 @@ export function Editor({ value, onChange, theme, onRun }: EditorProps) {
 
     // Focus editor
     editor.focus();
-  }, [onRun]);
+  }, []);
 
   const handleChange = useCallback((value: string | undefined) => {
     onChange(value ?? '');

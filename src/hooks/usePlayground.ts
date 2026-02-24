@@ -10,6 +10,7 @@ export interface PlaygroundState {
   code: string;
   output: string;
   error: string | null;
+  warnings: string | null;
   status: PlaygroundStatus;
   typrReady: boolean;
   webRStatus: WebRStatus;
@@ -20,6 +21,7 @@ export function usePlayground() {
     code: defaultCode,
     output: '',
     error: null,
+    warnings: null,
     status: 'idle',
     typrReady: false,
     webRStatus: 'idle',
@@ -49,7 +51,7 @@ export function usePlayground() {
   }, []);
 
   const setCode = useCallback((code: string) => {
-    setState(s => ({ ...s, code, error: null }));
+    setState(s => ({ ...s, code, error: null, warnings: null }));
   }, []);
 
   const run = useCallback(async () => {
@@ -65,10 +67,10 @@ export function usePlayground() {
 
     const currentRunId = ++runIdRef.current;
 
-    setState(s => ({ ...s, status: 'compiling', output: '', error: null }));
+    setState(s => ({ ...s, status: 'compiling', output: '', error: null, warnings: null }));
 
     // Step 1: Compile TypR to R
-    const { rCode, errors: compileErrors } = compileTypR(state.code);
+    const { rCode, errors: compileErrors, typeWarnings } = compileTypR(state.code);
 
     if (currentRunId !== runIdRef.current) return;
 
@@ -77,12 +79,13 @@ export function usePlayground() {
         ...s,
         status: 'error',
         error: compileErrors,
+        warnings: null,
       }));
       return;
     }
 
-    // Step 2: Execute R code with WebR
-    setState(s => ({ ...s, status: 'running' }));
+    // Step 2: Execute R code with WebR (even if there are type warnings)
+    setState(s => ({ ...s, status: 'running', warnings: typeWarnings }));
 
     const result = await runR(rCode);
 
@@ -93,6 +96,7 @@ export function usePlayground() {
         ...s,
         status: 'error',
         error: result.error,
+        warnings: typeWarnings,
       }));
     } else {
       setState(s => ({
@@ -100,6 +104,7 @@ export function usePlayground() {
         status: 'idle',
         output: result.output || '(no output)',
         error: null,
+        warnings: typeWarnings,
       }));
     }
   }, [state.typrReady, state.webRStatus, state.code]);

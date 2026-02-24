@@ -4,6 +4,8 @@ export interface CompileResult {
   r_code: string;
   type_annotations: string;
   generic_functions: string;
+  has_errors: boolean;
+  errors: string;
 }
 
 export interface TypeCheckResult {
@@ -39,16 +41,20 @@ export function isTypRReady(): boolean {
   return wasmModule !== null;
 }
 
-export function compileTypR(source: string): { rCode: string; errors: string | null } {
+export function compileTypR(source: string): { rCode: string; errors: string | null; typeWarnings: string | null } {
   if (!wasmModule) {
     throw new Error('TypR compiler not initialized');
   }
   
   try {
     const result = wasmModule.compile(source);
-    return { rCode: result.r_code, errors: null };
+    return {
+      rCode: result.r_code,
+      errors: null,
+      typeWarnings: result.has_errors ? result.errors : null,
+    };
   } catch (e) {
-    return { rCode: '', errors: String(e) };
+    return { rCode: '', errors: String(e), typeWarnings: null };
   }
 }
 

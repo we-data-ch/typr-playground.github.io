@@ -173,6 +173,29 @@
   color: var(--error);
 }
 
+.output-warnings {
+  margin-bottom: 1rem;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.output-warnings-header {
+  padding: 0.375rem 0.75rem;
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.output-warnings-content {
+  padding: 0.75rem;
+  color: var(--warning);
+  font-size: 0.8125rem;
+}
+
 .output-loading {
   color: var(--text-muted);
   display: flex;

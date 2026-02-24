@@ -3,10 +3,11 @@ import type { PlaygroundStatus, WebRStatus } from '../hooks/usePlayground';
 interface OutputProps {
   output: string;
   error: string | null;
+  warnings: string | null;
   status: PlaygroundStatus;
 }
 
-export function Output({ output, error, status }: OutputProps) {
+export function Output({ output, error, warnings, status }: OutputProps) {
   const renderContent = () => {
     if (status === 'compiling') {
       return (
@@ -19,19 +20,47 @@ export function Output({ output, error, status }: OutputProps) {
 
     if (status === 'running') {
       return (
-        <div className="output-loading">
-          <div className="spinner" />
-          Executing R code...
-        </div>
+        <>
+          {warnings && (
+            <div className="output-warnings">
+              <div className="output-warnings-header">Type Warnings</div>
+              <pre className="output-warnings-content">{warnings}</pre>
+            </div>
+          )}
+          <div className="output-loading">
+            <div className="spinner" />
+            Executing R code...
+          </div>
+        </>
       );
     }
 
     if (error) {
-      return <pre className="output-error">{error}</pre>;
+      return (
+        <>
+          {warnings && (
+            <div className="output-warnings">
+              <div className="output-warnings-header">Type Warnings</div>
+              <pre className="output-warnings-content">{warnings}</pre>
+            </div>
+          )}
+          <pre className="output-error">{error}</pre>
+        </>
+      );
     }
 
-    if (output) {
-      return <pre className="output-result">{output}</pre>;
+    if (output || warnings) {
+      return (
+        <>
+          {warnings && (
+            <div className="output-warnings">
+              <div className="output-warnings-header">Type Warnings</div>
+              <pre className="output-warnings-content">{warnings}</pre>
+            </div>
+          )}
+          {output && <pre className="output-result">{output}</pre>}
+        </>
+      );
     }
 
     return (

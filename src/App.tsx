@@ -14,6 +14,7 @@ function App() {
     code,
     output,
     error,
+    warnings,
     status,
     typrReady,
     webRStatus,
@@ -64,6 +65,7 @@ function App() {
             <Output
               output={output}
               error={error}
+              warnings={warnings}
               status={status}
             />
           </div>

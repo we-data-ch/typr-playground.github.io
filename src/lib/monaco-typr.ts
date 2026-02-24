@@ -425,7 +425,7 @@ export function defineTypRTheme(monaco: typeof import('monaco-editor')) {
     inherit: true,
     rules: [
       { token: 'comment', foreground: '6a737d', fontStyle: 'italic' },
-      { token: 'keyword', foreground: 'd73a49', fontStyle: 'bold' },
+      { token: 'keyword', foreground: 'c71c3a', fontStyle: 'bold' },
       { token: 'type', foreground: '6f42c1' },
       { token: 'type.parameter', foreground: 'e36209' },
       { token: 'type.variant', foreground: '22863a' },
@@ -433,15 +433,16 @@ export function defineTypRTheme(monaco: typeof import('monaco-editor')) {
       { token: 'string.escape', foreground: '005cc5' },
       { token: 'number', foreground: '005cc5' },
       { token: 'constant', foreground: '005cc5' },
-      { token: 'operator', foreground: 'd73a49' },
+      { token: 'operator', foreground: 'c71c3a' },
       { token: 'entity.name.function', foreground: '6f42c1' },
       { token: 'entity.name.function.external', foreground: 'e36209' },
-      { token: 'support.function', foreground: '005cc5' },
+      { token: 'support.function', foreground: 'c71c3a' },
       { token: 'identifier', foreground: '24292e' },
     ],
     colors: {
       'editor.background': '#ffffff',
       'editor.foreground': '#24292e',
+      'editorCursor.foreground': '#c71c3a',
     },
   });
 
@@ -451,7 +452,7 @@ export function defineTypRTheme(monaco: typeof import('monaco-editor')) {
     inherit: true,
     rules: [
       { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
-      { token: 'keyword', foreground: 'c586c0', fontStyle: 'bold' },
+      { token: 'keyword', foreground: 'c71c3a', fontStyle: 'bold' },
       { token: 'type', foreground: '4ec9b0' },
       { token: 'type.parameter', foreground: 'dcdcaa' },
       { token: 'type.variant', foreground: '4fc1ff' },
@@ -462,12 +463,15 @@ export function defineTypRTheme(monaco: typeof import('monaco-editor')) {
       { token: 'operator', foreground: 'd4d4d4' },
       { token: 'entity.name.function', foreground: 'dcdcaa' },
       { token: 'entity.name.function.external', foreground: 'dcdcaa', fontStyle: 'italic' },
-      { token: 'support.function', foreground: 'c586c0' },
+      { token: 'support.function', foreground: 'c71c3a' },
       { token: 'identifier', foreground: '9cdcfe' },
     ],
     colors: {
-      'editor.background': '#1e1e2e',
+      'editor.background': '#232326',
       'editor.foreground': '#d4d4d4',
+      'editorCursor.foreground': '#c71c3a',
+      'editor.selectionBackground': '#c71c3a33',
+      'editor.lineHighlightBackground': '#2a2a2e',
     },
   });
 }

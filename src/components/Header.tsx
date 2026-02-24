@@ -38,7 +38,7 @@ export function Header({
     <header className="header">
       <div className="header-left">
         <a href="/" className="logo">
-          <img src="/typr_carre.png" alt="TypR" />
+          <img src="/typr-logo.svg" alt="TypR" />
           <span>TypR Playground</span>
         </a>
         <span className="version">v0.4.19</span>
@@ -74,6 +74,7 @@ export function Header({
           className="btn btn-primary"
           onClick={onRun}
           disabled={isRunning || !isReady}
+          title="Run code (Ctrl+Enter)"
         >
           {isRunning ? (
             <>
