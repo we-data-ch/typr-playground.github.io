@@ -38,10 +38,10 @@ export function Header({
     <header className="header">
       <div className="header-left">
         <a href="/" className="logo">
-          <img src="/typr-logo.svg" alt="TypR" />
+          <img src={`${import.meta.env.BASE_URL}typr_carre.png`} alt="TypR" />
           <span>TypR Playground</span>
         </a>
-        <span className="version">v0.4.19</span>
+        <span className="version">0.4.26</span>
       </div>
 
       <div className="header-center">
@@ -71,12 +71,17 @@ export function Header({
         </div>
 
         <button
-          className="btn btn-primary"
+          className={`btn ${!isReady ? 'btn-loading' : 'btn-primary'}`}
           onClick={onRun}
           disabled={isRunning || !isReady}
           title="Run code (Ctrl+Enter)"
         >
-          {isRunning ? (
+          {!isReady ? (
+            <>
+              <div className="spinner" />
+              Loading...
+            </>
+          ) : isRunning ? (
             <>
               <div className="spinner" />
               Running...

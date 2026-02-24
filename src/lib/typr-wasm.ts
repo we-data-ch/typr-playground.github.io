@@ -28,7 +28,9 @@ export async function initTypR(): Promise<void> {
   if (wasmModule) return;
   
   // Load WASM module dynamically from public folder
-  const wasmUrl = new URL('/wasm/typr_wasm.js', window.location.origin).href;
+  // Use import.meta.env.BASE_URL to respect Vite's base path configuration
+  const base = import.meta.env.BASE_URL || '/';
+  const wasmUrl = new URL(`${base}wasm/typr_wasm.js`, window.location.origin).href;
   
   // Import the ES module
   const module = await import(/* @vite-ignore */ wasmUrl) as TypRWasmModule;
