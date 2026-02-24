@@ -125,8 +125,8 @@ export async function runR(code: string): Promise<RExecutionResult> {
         }
       }
       
-      // Join the parts
-      const output = outputParts.join('');
+      // Join the parts with newlines to preserve line breaks between output events
+      const output = outputParts.join('\n');
       
       // Clean up
       await shelter.evalR('rm(.typr_output)').catch(() => {});
