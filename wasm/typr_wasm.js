@@ -22,6 +22,26 @@ export class CompileResult {
         wasm.__wbg_compileresult_free(ptr, 0);
     }
     /**
+     * Formatted error messages (empty string if no errors)
+     * @returns {string}
+     */
+    get errors() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_compileresult_errors(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export4(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
      * @returns {string}
      */
     get generic_functions() {
@@ -39,6 +59,14 @@ export class CompileResult {
             wasm.__wbindgen_add_to_stack_pointer(16);
             wasm.__wbindgen_export4(deferred1_0, deferred1_1, 1);
         }
+    }
+    /**
+     * Whether type errors were found during compilation
+     * @returns {boolean}
+     */
+    get has_errors() {
+        const ret = wasm.__wbg_get_compileresult_has_errors(this.__wbg_ptr);
+        return ret !== 0;
     }
     /**
      * @returns {string}
@@ -79,12 +107,28 @@ export class CompileResult {
         }
     }
     /**
+     * Formatted error messages (empty string if no errors)
+     * @param {string} arg0
+     */
+    set errors(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_compileresult_errors(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
      * @param {string} arg0
      */
     set generic_functions(arg0) {
         const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
         const len0 = WASM_VECTOR_LEN;
         wasm.__wbg_set_compileresult_generic_functions(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Whether type errors were found during compilation
+     * @param {boolean} arg0
+     */
+    set has_errors(arg0) {
+        wasm.__wbg_set_compileresult_has_errors(this.__wbg_ptr, arg0);
     }
     /**
      * @param {string} arg0
