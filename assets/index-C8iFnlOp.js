@@ -32,7 +32,7 @@ let numbers <- c(1, 2, 3, 4, 5);
 print(numbers);
 
 let new_numbers <- numbers + 2;
-print(new_nubmers);
+print(new_numbers);
 `},{name:"Lists",description:"Working with lists",code:`# Creating list 
 let list1 <- list(name = "Anna", age = 45);
 print(list1);
