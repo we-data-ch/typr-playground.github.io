@@ -26,8 +26,17 @@ let add <- fn(a: int, b: int): int {
   a + b
 };
 
-# Using the functions
-add(5, 3)`},{name:"Vectors",description:"Working with typed vectors",code:`# Creating typed vectors
+# Using the functions normally
+print(add(5, 3));
+
+# Using the functions with pipes
+(5) |> add(3)
+	|> print();
+
+# Using the functions with method calling
+(5).add(3)
+   .print();
+`},{name:"Vectors",description:"Working with typed vectors",code:`# Creating typed vectors
 let numbers <- c(1, 2, 3, 4, 5);
 print(numbers);
 
@@ -35,28 +44,9 @@ let new_numbers <- numbers + 2;
 print(new_numbers);
 `},{name:"Lists",description:"Working with lists",code:`# Creating list 
 let list1 <- list(name = "Anna", age = 45);
-print(list1);
 
 # Second notation (object like)
 let list2 <- :{name: "Anna", age: 45};
-print(list2);
-
-# Creating a Type from a list structure
-type Person <- list {
-	name: char,
-	age: int
-};
-
-# function for a specific type
-let get_name <- fn(p: Person): char {
-	p$name
-};
-
-list2 
-	|> get_name()
-	|> print();
-
-list2.get_name().print();
 
 # Function inheritance
 let is_minor <- fn(p: {age: int}): bool {
@@ -65,7 +55,23 @@ let is_minor <- fn(p: {age: int}): bool {
 
 # Apply to Person
 list2.is_minor().print()
-`},{name:"Advanced types",description:"Working with Advanced types",code:`# Type definition
+`},{name:"Custom types",description:"Working with Custom types",code:`# Type definition by alias
+type Person = list {
+	name: char,
+	age: int
+};
+
+new_person <- fn(name: char, age: int): Person {
+	list(name = name, age = age)
+};
+
+is_minor <- fn(p: Person): bool {
+	p$age < 18
+};
+
+alice <- new_person("Alice", 35);
+
+alice.is_minor()`},{name:"Advanced types",description:"Working with Advanced types",code:`# Type definition
 type Point <- {
 	x: int,
 	y: int
