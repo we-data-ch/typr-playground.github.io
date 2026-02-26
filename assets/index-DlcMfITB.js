@@ -21,6 +21,40 @@ print(name);
 
 let is_valid: bool <- true;
 print(is_valid);
+`},{name:"Advanced Types",description:"Working with numbers and strings",code:`# Lists combine existing types in a collection
+type List <- list {
+	a: int,
+	b: bool
+};
+
+# Has a default constructor
+let list0 <- list(a = 3, b = false);
+
+# Vectors combines existing types as a sequence
+type Vector <- Vector[3, int];
+
+# Has a default constructor
+let vector <- c(1, 2, 3);
+
+# Array as an extension of vector
+type Array <- [4, bool];
+
+# Has a default constructor
+let array <- [true, false, false, true];
+
+# Interfaces target types who has a set of related function
+type Interface <- interface {
+	f: (int) -> int,
+	b: (bool) -> bool
+};
+
+# Interface have no default constructor
+
+# [Coming soon] Union types to say if we have either a value or another
+type Union <- int | bool;
+
+# Union don't have any constructor
+print("advanced types");
 `},{name:"Functions",description:"Defining and using typed functions",code:`# Function with type annotations
 let add <- fn(a: int, b: int): int {
   a + b
@@ -58,6 +92,27 @@ let is_minor <- fn(p: {age: int}): bool {
 
 # Apply to list (as a subtype)
 list2.is_minor().print()
+`},{name:"Interface",description:"Working with interfaces",code:`# one can create interface
+# signature
+@paste: (Any, Any) -> char;
+
+# interface definition
+type Viewable <- interface {
+	view: (Self) -> char
+};
+
+# create a function for all viewable types
+let double <- fn(a: Viewable): char {
+	paste(view(a), view(a))
+};
+
+# include bool to Viewable with the view function
+let view <- fn(a: bool): char {
+	"bool"
+};
+
+# boolean inherit double
+true.double()
 `},{name:"Custom types",description:"Working with Custom types",code:`# You can target an existing type (lists, vector, function)
 # With an alias, it help reducing the size of a greater type
 
