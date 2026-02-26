@@ -42,6 +42,14 @@ type Array <- [4, bool];
 # Has a default constructor
 let array <- [true, false, false, true];
 
+# Function are the back bones of any language
+type Function <- (int) -> bool;
+
+# Has a default constructor
+let function0 <- fn(a: int): bool {
+	true
+};
+
 # Interfaces target types who has a set of related function
 type Interface <- interface {
 	f: (int) -> int,
@@ -70,12 +78,12 @@ print(add(5, 3));
 # Using the functions with method calling
 (5).add(3)
    .print();
-`},{name:"Vectors",description:"Working with typed vectors",code:`# Creating typed vectors
-let numbers <- c(1, 2, 3, 4, 5);
-print(numbers);
+`},{name:"Vectors and Arrays",description:"Working with typed vectors",code:`# Creating typed vectors and arrays
+let v1 <- c(1, 2, 3, 4, 5);
+print(2*v1+3);
 
-let new_numbers <- numbers + 2;
-print(new_numbers);
+let a1 <- [1, 2, 3, 4, 5];
+print(2*a1+3);
 `},{name:"Lists",description:"Working with lists",code:`# A list can be a subtype of another list
 # thus inheriting its related functions
 
