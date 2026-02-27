@@ -63,6 +63,20 @@ type Union <- int | bool;
 
 # Union don't have any constructor
 print("advanced types");
+`},{name:"Signatures",description:"Using existing R functions",code:`# Working with untyped functions
+
+# By default, most base R functions are untyped
+
+toupper("Hi"); # take Any return Empty
+
+# toupper(7); will return an error at runtime
+
+# Signature types existing variables/functions
+@toupper: (char) -> char;
+
+toupper("Hi"); # now take char return char
+
+# toupper(7); will return an error at compile time
 `},{name:"Functions",description:"Defining and using typed functions",code:`# Function with type annotations
 let add <- fn(a: int, b: int): int {
   a + b
@@ -100,7 +114,7 @@ let is_minor <- fn(p: {age: int}): bool {
 
 # Apply to list (as a subtype)
 list2.is_minor().print()
-`},{name:"Interface",description:"Working with interfaces",code:`# one can create interface
+`},{name:"Interfaces",description:"Working with interfaces",code:`# one can create interface
 # signature
 @paste: (Any, Any) -> char;
 
@@ -121,7 +135,7 @@ let view <- fn(a: bool): char {
 
 # boolean inherit double
 true.double()
-`},{name:"Custom types",description:"Working with Custom types",code:`# You can target an existing type (lists, vector, function)
+`},{name:"Aliases",description:"Working with Custom types with aliases",code:`# You can target an existing type (lists, vector, function)
 # With an alias, it help reducing the size of a greater type
 
 # Type definition by alias
