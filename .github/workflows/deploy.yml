@@ -1,0 +1,50 @@
+name: Deploy playground
+
+# Se déclenche aussi bien sur une modification du playground que sur le push de
+# WASM fait par la release du compilateur (which writes public/wasm/ + version.json).
+# Sans ça, le WASM arrivait dans le dépôt mais le site publié restait figé.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Build
+        run: npm run build
+
+      - name: Report the embedded TypR version
+        run: |
+          if [ -f public/wasm/version.json ]; then
+            echo "TypR embarqué : $(cat public/wasm/version.json)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::public/wasm/version.json absent — le playground n'affichera pas de version"
+          fi
+
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
