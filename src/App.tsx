@@ -1,10 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Header } from './components/Header';
 import { Editor } from './components/Editor';
 import { Output, StatusBar } from './components/Output';
 import { useTheme } from './hooks/useTheme';
 import { usePlayground } from './hooks/usePlayground';
 import type { Example } from './lib/examples';
+import { buildShareUrl } from './lib/share';
 import './styles/theme.css';
 import './styles/App.css';
 
@@ -18,6 +19,7 @@ function App() {
     status,
     typrReady,
     webRStatus,
+    embed,
     setCode,
     run,
     share,
@@ -30,8 +32,15 @@ function App() {
 
   const isRunning = status === 'compiling' || status === 'running';
 
+  // En mode embarqué, le lien « plein écran » doit transporter le code courant :
+  // le visiteur a pu l'éditer dans l'iframe avant de cliquer.
+  const fullPlaygroundUrl = useMemo(
+    () => (embed ? buildShareUrl(code) : null),
+    [embed, code],
+  );
+
   return (
-    <div className="app">
+    <div className={embed ? 'app app-embed' : 'app'}>
       <Header
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -40,6 +49,8 @@ function App() {
         onSelectExample={handleSelectExample}
         isRunning={isRunning}
         isReady={isReady}
+        embed={embed}
+        fullPlaygroundUrl={fullPlaygroundUrl}
       />
 
       <main className="main">

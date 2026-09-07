@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Play, Moon, Sun, ChevronDown, Share2, Github } from 'lucide-react';
+import { Play, Moon, Sun, ChevronDown, Share2, Github, ExternalLink } from 'lucide-react';
 import { examples, type Example } from '../lib/examples';
 
 interface HeaderProps {
@@ -10,6 +10,10 @@ interface HeaderProps {
   onSelectExample: (example: Example) => void;
   isRunning: boolean;
   isReady: boolean;
+  /** Chrome réduit pour l'intégration en <iframe> depuis la documentation. */
+  embed?: boolean;
+  /** Lien vers le playground plein écran, avec le code courant. */
+  fullPlaygroundUrl?: string | null;
 }
 
 export function Header({
@@ -20,6 +24,8 @@ export function Header({
   onSelectExample,
   isRunning,
   isReady,
+  embed = false,
+  fullPlaygroundUrl = null,
 }: HeaderProps) {
   const [showExamples, setShowExamples] = useState(false);
   const [version, setVersion] = useState<string | null>(null);
@@ -48,7 +54,12 @@ export function Header({
   return (
     <header className="header">
       <div className="header-left">
-        <a href="/" className="logo">
+        <a
+          href={embed ? fullPlaygroundUrl ?? '/' : '/'}
+          className="logo"
+          target={embed ? '_blank' : undefined}
+          rel={embed ? 'noopener noreferrer' : undefined}
+        >
           <img src={`${import.meta.env.BASE_URL}typr_carre.png`} alt="TypR" />
           <span>TypR Playground</span>
         </a>
@@ -56,30 +67,32 @@ export function Header({
       </div>
 
       <div className="header-center">
-        <div className="examples-dropdown" ref={dropdownRef}>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowExamples(!showExamples)}
-          >
-            Examples
-            <ChevronDown size={16} />
-          </button>
-          {showExamples && (
-            <div className="examples-menu">
-              {examples.map((example) => (
-                <button
-                  key={example.name}
-                  onClick={() => {
-                    onSelectExample(example);
-                    setShowExamples(false);
-                  }}
-                >
-                  {example.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {!embed && (
+          <div className="examples-dropdown" ref={dropdownRef}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowExamples(!showExamples)}
+            >
+              Examples
+              <ChevronDown size={16} />
+            </button>
+            {showExamples && (
+              <div className="examples-menu">
+                {examples.map((example) => (
+                  <button
+                    key={example.name}
+                    onClick={() => {
+                      onSelectExample(example);
+                      setShowExamples(false);
+                    }}
+                  >
+                    {example.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           className={`btn ${!isReady ? 'btn-loading' : 'btn-primary'}`}
@@ -107,23 +120,38 @@ export function Header({
       </div>
 
       <div className="header-right">
-        <button
-          className="btn-icon"
-          onClick={onShare}
-          title="Share code"
-        >
-          <Share2 size={18} />
-        </button>
-        
-        <a
-          href="https://github.com/we-data-ch/typr"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-icon"
-          title="GitHub"
-        >
-          <Github size={18} />
-        </a>
+        {embed ? (
+          <a
+            href={fullPlaygroundUrl ?? '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary"
+            title="Open this code in the full playground"
+          >
+            <ExternalLink size={16} />
+            Playground
+          </a>
+        ) : (
+          <>
+            <button
+              className="btn-icon"
+              onClick={onShare}
+              title="Share code"
+            >
+              <Share2 size={18} />
+            </button>
+
+            <a
+              href="https://github.com/we-data-ch/typr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-icon"
+              title="GitHub"
+            >
+              <Github size={18} />
+            </a>
+          </>
+        )}
 
         <button
           className="btn-icon"

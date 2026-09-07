@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { initTypR, compileTypR } from '../lib/typr-wasm';
 import { initWebR, runR, type WebRStatus } from '../lib/webr';
 import { defaultCode } from '../lib/examples';
+import { readSharedParams, buildShareUrl } from '../lib/share';
+import { onHostMessage, postToHost, READY, RESULT } from '../lib/embed';
 
 export type { WebRStatus };
 export type PlaygroundStatus = 'idle' | 'compiling' | 'running' | 'error';
@@ -17,8 +19,12 @@ export interface PlaygroundState {
 }
 
 export function usePlayground() {
+  // Les paramètres d'URL sont lus avant le premier rendu : sinon un lien venant
+  // de la documentation affiche brièvement l'exemple par défaut avant son code.
+  const [sharedParams] = useState(() => readSharedParams());
+
   const [state, setState] = useState<PlaygroundState>({
-    code: defaultCode,
+    code: sharedParams.code ?? defaultCode,
     output: '',
     error: null,
     warnings: null,
@@ -26,8 +32,9 @@ export function usePlayground() {
     typrReady: false,
     webRStatus: 'idle',
   });
-  
+
   const runIdRef = useRef(0);
+  const pendingAutorunRef = useRef(sharedParams.autorun && sharedParams.code !== null);
 
   // Initialize TypR WASM
   useEffect(() => {
@@ -81,6 +88,7 @@ export function usePlayground() {
         error: compileErrors,
         warnings: null,
       }));
+      postToHost({ type: RESULT, output: '', error: compileErrors, warnings: null });
       return;
     }
 
@@ -107,6 +115,13 @@ export function usePlayground() {
         warnings: typeWarnings,
       }));
     }
+
+    postToHost({
+      type: RESULT,
+      output: result.error ? '' : result.output,
+      error: result.error ?? null,
+      warnings: typeWarnings,
+    });
   }, [state.typrReady, state.webRStatus, state.code]);
 
   const format = useCallback(() => {
@@ -114,34 +129,40 @@ export function usePlayground() {
   }, []);
 
   const share = useCallback(() => {
-    // Encode code in URL
-    const encoded = btoa(encodeURIComponent(state.code));
-    const url = `${window.location.origin}${window.location.pathname}?code=${encoded}`;
-    navigator.clipboard.writeText(url);
-    // Could show a toast here
+    navigator.clipboard.writeText(buildShareUrl(state.code));
   }, [state.code]);
 
-  // Load code from URL on mount
+  const isReady = state.typrReady && state.webRStatus === 'ready';
+
+  // `?run=1` : la documentation peut demander un lancement automatique, une fois
+  // seulement, quand les deux runtimes ont fini de charger. Le déclenchement
+  // passe par une microtâche pour ne pas relancer un rendu depuis l'effet.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const encoded = params.get('code');
-    if (encoded) {
-      try {
-        const code = decodeURIComponent(atob(encoded));
-        setState(s => ({ ...s, code }));
-      } catch {
-        // Invalid encoding, ignore
-      }
-    }
+    if (!pendingAutorunRef.current || !isReady) return;
+    pendingAutorunRef.current = false;
+    queueMicrotask(() => { void run(); });
+  }, [isReady, run]);
+
+  // Intégration en <iframe> : la page hôte peut pousser du code sans passer par
+  // l'URL, ce qui lève la limite de longueur.
+  useEffect(() => {
+    const stop = onHostMessage(({ code, run: shouldRun }) => {
+      setState(s => ({ ...s, code, error: null, warnings: null }));
+      if (shouldRun) pendingAutorunRef.current = true;
+    });
+    postToHost({ type: READY });
+    return stop;
   }, []);
 
   return {
     ...state,
+    embed: sharedParams.embed,
+    initialTheme: sharedParams.theme,
     setCode,
     run,
     format,
     share,
-    isReady: state.typrReady && state.webRStatus === 'ready',
+    isReady,
     isLoading: !state.typrReady || state.webRStatus === 'loading',
   };
 }

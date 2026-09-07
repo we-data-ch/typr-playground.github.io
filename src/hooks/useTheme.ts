@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { readSharedParams } from '../lib/share';
 
 type Theme = 'light' | 'dark';
 
@@ -22,7 +23,9 @@ function applyTheme(theme: Theme): void {
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
-    return getStoredTheme() ?? getSystemTheme();
+    // `?theme=` permet à la documentation d'ouvrir le playground dans son propre
+    // thème. On ne l'enregistre pas : la préférence du visiteur reste la sienne.
+    return readSharedParams().theme ?? getStoredTheme() ?? getSystemTheme();
   });
 
   useEffect(() => {
