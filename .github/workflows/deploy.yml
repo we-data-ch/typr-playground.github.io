@@ -28,6 +28,24 @@ jobs:
 
       - run: npm ci
 
+# La grammaire est un fichier *généré* par le compilateur et recopié ici
+      # par sa release ; l'éditer à la main ferait revivre la divergence que le
+      # manifeste a supprimée. On ne bloque pas le build pour autant : entre deux
+      # releases, la copie a le droit d'être en retard sur `develop`.
+      - name: Grammaire TypR — vérifier qu'elle n'a pas été éditée à la main
+        run: |
+          UPSTREAM=$(mktemp)
+          if ! curl -sfL -o "$UPSTREAM" \
+            https://raw.githubusercontent.com/we-data-ch/typr/develop/editors/vscode/syntaxes/typr.tmLanguage.json; then
+            echo "::warning title=Grammaire non vérifiée::impossible de récupérer la grammaire de référence."
+            exit 0
+          fi
+          if diff -q "$UPSTREAM" syntaxes/typr.tmLanguage.json > /dev/null; then
+            echo "syntaxes/typr.tmLanguage.json est identique à la grammaire générée."
+          else
+            echo "::warning title=Grammaire décalée::syntaxes/typr.tmLanguage.json diffère de we-data-ch/typr@develop. Si ce n'est pas juste un retard entre deux releases, c'est une édition à la main : elle sera écrasée à la prochaine release. La source est crates/typr-core/src/components/syntax/mod.rs."
+            diff "$UPSTREAM" syntaxes/typr.tmLanguage.json | head -40 || true
+          fi
       - name: Typecheck
         run: npx tsc -b
 

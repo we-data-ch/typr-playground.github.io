@@ -1,10 +1,30 @@
-// Monaco Editor configuration for TypR language
-// Based on the VSCode extension's tmLanguage and language-configuration
+// Monaco Editor configuration for TypR language.
+//
+// La coloration ne vit plus ici : elle vient de `syntaxes/typr.tmLanguage.json`,
+// généré par `typr syntax --target tmlanguage` depuis le manifeste du compilateur
+// (crates/typr-core/src/components/syntax/mod.rs) et joué par Shiki. Les règles
+// Monarch qui occupaient ce fichier étaient une septième copie de la syntaxe, et
+// elles avaient dérivé : elles coloraient `impl`, `trait`, `struct`, `enum`,
+// `where`, `mut`, `Option`, `Result` — des mots-clés Rust que TypR n'a jamais eus —
+// et ignoraient `opaque`, `module`, `record`, `interface`, `typeconstructor`, les
+// blocs `R {}` / `JS {}` et les sigils de kind.
+//
+// Ce qui reste ici est ce qu'une grammaire TextMate ne sait pas exprimer : la
+// LanguageConfiguration (paires, indentation, repli), les complétions et le hover.
 
 import type { languages } from 'monaco-editor';
+import { createHighlighterCoreSync } from 'shiki/core';
+import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
+import { shikiToMonaco } from '@shikijs/monaco';
+import githubLight from '@shikijs/themes/github-light';
+import darkPlus from '@shikijs/themes/dark-plus';
+import typrGrammar from '../../syntaxes/typr.tmLanguage.json';
 
 // Language ID
 export const TYPR_LANGUAGE_ID = 'typr';
+
+export const TYPR_LIGHT_THEME = 'typr-light';
+export const TYPR_DARK_THEME = 'typr-dark';
 
 // Language configuration (brackets, comments, etc.)
 export const typrLanguageConfiguration: languages.LanguageConfiguration = {
@@ -21,7 +41,6 @@ export const typrLanguageConfiguration: languages.LanguageConfiguration = {
     { open: '{', close: '}' },
     { open: '[', close: ']' },
     { open: '(', close: ')' },
-    { open: '<', close: '>', notIn: ['string', 'comment'] },
     { open: '"', close: '"', notIn: ['string'] },
     { open: "'", close: "'", notIn: ['string', 'comment'] },
     { open: '`', close: '`', notIn: ['string', 'comment'] },
@@ -30,7 +49,6 @@ export const typrLanguageConfiguration: languages.LanguageConfiguration = {
     { open: '{', close: '}' },
     { open: '[', close: ']' },
     { open: '(', close: ')' },
-    { open: '<', close: '>' },
     { open: '"', close: '"' },
     { open: "'", close: "'" },
     { open: '`', close: '`' },
@@ -71,188 +89,6 @@ export const typrLanguageConfiguration: languages.LanguageConfiguration = {
       action: { indentAction: 2 },
     },
   ],
-};
-
-// Monarch syntax highlighting (equivalent to tmLanguage)
-export const typrMonarchLanguage: languages.IMonarchLanguage = {
-  defaultToken: '',
-  tokenPostfix: '.typr',
-
-  // Keywords
-  keywords: [
-    'if', 'else', 'match', 'for', 'while', 'loop', 'break', 'continue', 'return',
-    'let', 'fn', 'type', 'pub', 'use', 'mod', 'impl', 'trait', 'struct', 'enum',
-    'where', 'as', 'in', 'mut',
-  ],
-
-  // Type keywords
-  typeKeywords: [
-    'int', 'num', 'char', 'bool', 'Empty', 'Any',
-    'Number', 'String', 'Boolean', 'Integer', 'Character',
-    'Option', 'Vec', 'Result', 'List', 'Matrix', 'DataFrame',
-    'Function', 'Unit',
-  ],
-
-  // Boolean and special constants
-  constants: [
-    'true', 'false', 'TRUE', 'FALSE',
-    'NULL', 'NA', 'NaN', 'Inf',
-  ],
-
-  // Common R functions (for highlighting)
-  builtinFunctions: [
-    'print', 'paste', 'paste0', 'cat', 'sprintf',
-    'c', 'list', 'vector', 'matrix', 'array', 'data.frame',
-    'length', 'nrow', 'ncol', 'dim', 'names',
-    'sum', 'mean', 'median', 'sd', 'var', 'min', 'max', 'range',
-    'abs', 'sqrt', 'log', 'log10', 'exp', 'sin', 'cos', 'tan',
-    'floor', 'ceiling', 'round', 'trunc',
-    'is.null', 'is.na', 'is.numeric', 'is.character', 'is.logical',
-    'as.numeric', 'as.character', 'as.logical', 'as.integer',
-    'head', 'tail', 'rev', 'sort', 'order', 'unique',
-    'which', 'any', 'all', 'ifelse',
-    'rep', 'seq', 'seq_along', 'seq_len',
-    'lapply', 'sapply', 'mapply', 'apply', 'Map', 'Reduce', 'Filter',
-    'subset', 'merge', 'rbind', 'cbind',
-    'read.csv', 'write.csv', 'readRDS', 'saveRDS',
-    'file.exists', 'dir.exists', 'getwd', 'setwd',
-  ],
-
-  // Operators
-  operators: [
-    '->', '=>', '<-', '|>',
-    '==', '!=', '<=', '>=', '<', '>',
-    '&&', '||', '!',
-    '+', '-', '*', '/', '%', '^',
-    '=', ':', '::', '@', '.',
-    '&', '|',
-  ],
-
-  // Symbols for operator matching
-  symbols: /[=><!~?:&|+\-*\/\^%@.]+/,
-
-  // Escape sequences
-  escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
-
-  // Tokenizer
-  tokenizer: {
-    root: [
-      // Comments
-      [/#.*$/, 'comment'],
-
-      // Strings
-      [/"([^"\\]|\\.)*$/, 'string.invalid'], // non-terminated string
-      [/"/, 'string', '@string_double'],
-      [/'([^'\\]|\\.)*$/, 'string.invalid'],
-      [/'/, 'string', '@string_single'],
-      [/`[^`]*`/, 'string.backtick'],
-
-      // Numbers
-      [/\b[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?\b/, 'number.float'],
-      [/\b[0-9]+[eE][+-]?[0-9]+\b/, 'number.float'],
-      [/\b[0-9]+L?\b/, 'number'],
-
-      // Generic type parameters (#T)
-      [/#[A-Z][a-zA-Z0-9_]*\b/, 'type.parameter'],
-
-      // Variant access (.Some, .None, .Ok, .Err)
-      [/\.[A-Z][a-zA-Z0-9_]*\b/, 'type.variant'],
-
-      // Type annotations after colon
-      [/:\s*/, { token: 'delimiter', next: '@type_annotation' }],
-
-      // Function definitions
-      [/(fn)(\s+)([a-z_][a-zA-Z0-9_]*)/, ['keyword', 'white', 'entity.name.function']],
-      
-      // Let bindings with function assignment
-      [/(let)(\s+)([a-z_][a-zA-Z0-9_]*)(\s*)(=)(\s*)(fn)/, 
-        ['keyword', 'white', 'entity.name.function', 'white', 'operator', 'white', 'keyword']],
-
-      // External function calls (@function_name)
-      [/@[a-z_][a-zA-Z0-9_]*/, 'entity.name.function.external'],
-
-      // Function calls
-      [/[a-z_][a-zA-Z0-9_]*(?=\s*\()/, {
-        cases: {
-          '@builtinFunctions': 'support.function',
-          '@default': 'entity.name.function',
-        },
-      }],
-
-      // Keywords, types, constants, identifiers
-      [/[a-zA-Z_][a-zA-Z0-9_]*/, {
-        cases: {
-          '@keywords': 'keyword',
-          '@typeKeywords': 'type',
-          '@constants': 'constant',
-          '@default': 'identifier',
-        },
-      }],
-
-      // Operators
-      [/@symbols/, {
-        cases: {
-          '@operators': 'operator',
-          '@default': '',
-        },
-      }],
-
-      // Delimiters
-      [/[{}()\[\]]/, '@brackets'],
-      [/[<>]/, '@brackets'],
-      [/[;,]/, 'delimiter'],
-
-      // Whitespace
-      [/\s+/, 'white'],
-    ],
-
-    // Type annotation context (after :)
-    type_annotation: [
-      // Lowercase type keywords (int, num, char, bool)
-      [/[a-z][a-zA-Z0-9_]*/, {
-        cases: {
-          '@typeKeywords': 'type',
-          '@default': { token: '@rematch', next: '@pop' },
-        },
-      }],
-      // Uppercase types (Vec, Option, String, etc.)
-      [/[A-Z][a-zA-Z0-9_]*/, 'type'],
-      // `<-` is the assignment operator, NOT a generic — pop back to root
-      [/<-/, { token: '@rematch', next: '@pop' }],
-      // `<` alone opens a generic type parameter
-      [/</, '@brackets', '@type_generic'],
-      [/\|/, 'operator'], // Union types
-      [/,/, 'delimiter'],
-      [/\s+/, 'white'],
-      [/[^A-Za-z0-9_<>,|\s]/, { token: '@rematch', next: '@pop' }],
-      [/$/, { token: '', next: '@pop' }],
-    ],
-
-    // Generic type parameters
-    type_generic: [
-      [/[A-Z][a-zA-Z0-9_]*/, 'type'],
-      [/</, '@brackets', '@push'],
-      [/>/, '@brackets', '@pop'],
-      [/,/, 'delimiter'],
-      [/\s+/, 'white'],
-    ],
-
-    // Double-quoted strings
-    string_double: [
-      [/[^\\"]+/, 'string'],
-      [/@escapes/, 'string.escape'],
-      [/\\./, 'string.escape.invalid'],
-      [/"/, 'string', '@pop'],
-    ],
-
-    // Single-quoted strings
-    string_single: [
-      [/[^\\']+/, 'string'],
-      [/@escapes/, 'string.escape'],
-      [/\\./, 'string.escape.invalid'],
-      [/'/, 'string', '@pop'],
-    ],
-  },
 };
 
 // Completions for TypR
@@ -333,8 +169,11 @@ export function registerTypRLanguage(monaco: typeof import('monaco-editor')) {
   // Set language configuration
   monaco.languages.setLanguageConfiguration(TYPR_LANGUAGE_ID, typrLanguageConfiguration);
 
-  // Set Monarch tokenizer
-  monaco.languages.setMonarchTokensProvider(TYPR_LANGUAGE_ID, typrMonarchLanguage);
+  // Coloration : la grammaire générée, jouée par Shiki, branchée sur Monaco.
+  // `shikiToMonaco` installe à la fois le tokenizer et les deux thèmes, donc il
+  // doit passer après `register` — Monaco ignore un tokenizer pour un langage
+  // qu'il ne connaît pas encore.
+  shikiToMonaco(createTypRHighlighter(), monaco);
 
   // Register completion provider
   monaco.languages.registerCompletionItemProvider(TYPR_LANGUAGE_ID, {
@@ -428,61 +267,58 @@ function getHoverInfo(word: string): { title: string; description: string } | nu
   return info[word] || null;
 }
 
-// Define custom theme tokens for TypR
-export function defineTypRTheme(monaco: typeof import('monaco-editor')) {
-  // Light theme customizations
-  monaco.editor.defineTheme('typr-light', {
-    base: 'vs',
-    inherit: true,
-    rules: [
-      { token: 'comment', foreground: '6a737d', fontStyle: 'italic' },
-      { token: 'keyword', foreground: 'c71c3a', fontStyle: 'bold' },
-      { token: 'type', foreground: '6f42c1' },
-      { token: 'type.parameter', foreground: 'e36209' },
-      { token: 'type.variant', foreground: '22863a' },
-      { token: 'string', foreground: '032f62' },
-      { token: 'string.escape', foreground: '005cc5' },
-      { token: 'number', foreground: '005cc5' },
-      { token: 'constant', foreground: '005cc5' },
-      { token: 'operator', foreground: 'c71c3a' },
-      { token: 'entity.name.function', foreground: '6f42c1' },
-      { token: 'entity.name.function.external', foreground: 'e36209' },
-      { token: 'support.function', foreground: 'c71c3a' },
-      { token: 'identifier', foreground: '24292e' },
-    ],
-    colors: {
-      'editor.background': '#ffffff',
-      'editor.foreground': '#24292e',
-      'editorCursor.foreground': '#c71c3a',
-    },
-  });
+// ── Coloration ──────────────────────────────────────────────────────────────
+//
+// Ce qui est coloré vient de la grammaire générée ; *avec quelles couleurs* vient
+// de deux thèmes Shiki du commerce. On ne recopie donc aucune liste de scopes ici :
+// la grammaire peint des scopes TextMate standard (`keyword.control`,
+// `support.type`, `entity.name.function`…), que tout thème sait déjà habiller.
+// Les seules retouches sont l'habillage de l'éditeur (fond, curseur, sélection),
+// qui n'a pas d'équivalent dans un thème de coloration, et l'accent rouge TypR
+// sur les mots-clés — deux catégories TextMate génériques, pas une liste de mots.
+const BRAND_RED = '#c71c3a';
 
-  // Dark theme customizations
-  monaco.editor.defineTheme('typr-dark', {
-    base: 'vs-dark',
-    inherit: true,
-    rules: [
-      { token: 'comment', foreground: '6a9955', fontStyle: 'italic' },
-      { token: 'keyword', foreground: 'c71c3a', fontStyle: 'bold' },
-      { token: 'type', foreground: '4ec9b0' },
-      { token: 'type.parameter', foreground: 'dcdcaa' },
-      { token: 'type.variant', foreground: '4fc1ff' },
-      { token: 'string', foreground: 'ce9178' },
-      { token: 'string.escape', foreground: 'd7ba7d' },
-      { token: 'number', foreground: 'b5cea8' },
-      { token: 'constant', foreground: '569cd6' },
-      { token: 'operator', foreground: 'd4d4d4' },
-      { token: 'entity.name.function', foreground: 'dcdcaa' },
-      { token: 'entity.name.function.external', foreground: 'dcdcaa', fontStyle: 'italic' },
-      { token: 'support.function', foreground: 'c71c3a' },
-      { token: 'identifier', foreground: '9cdcfe' },
-    ],
-    colors: {
-      'editor.background': '#232326',
-      'editor.foreground': '#d4d4d4',
-      'editorCursor.foreground': '#c71c3a',
-      'editor.selectionBackground': '#c71c3a33',
-      'editor.lineHighlightBackground': '#2a2a2e',
-    },
+const KEYWORD_ACCENT = {
+  scope: ['keyword.control', 'keyword.declaration'],
+  settings: { foreground: BRAND_RED, fontStyle: 'bold' },
+};
+
+const typrLightTheme = {
+  ...githubLight,
+  name: TYPR_LIGHT_THEME,
+  colors: {
+    ...githubLight.colors,
+    'editor.background': '#ffffff',
+    'editor.foreground': '#24292e',
+    'editorCursor.foreground': BRAND_RED,
+  },
+  tokenColors: [...(githubLight.tokenColors ?? []), KEYWORD_ACCENT],
+};
+
+const typrDarkTheme = {
+  ...darkPlus,
+  name: TYPR_DARK_THEME,
+  colors: {
+    ...darkPlus.colors,
+    'editor.background': '#232326',
+    'editor.foreground': '#d4d4d4',
+    'editorCursor.foreground': BRAND_RED,
+    'editor.selectionBackground': '#c71c3a33',
+    'editor.lineHighlightBackground': '#2a2a2e',
+  },
+  tokenColors: [...(darkPlus.tokenColors ?? []), KEYWORD_ACCENT],
+};
+
+// Le moteur regex JS plutôt qu'Oniguruma : pas de WASM à télécharger avant le
+// premier rendu, et la construction devient synchrone, donc la coloration est
+// prête au `beforeMount` de Monaco au lieu d'arriver après un premier affichage
+// en noir et blanc.
+function createTypRHighlighter() {
+  return createHighlighterCoreSync({
+    themes: [typrLightTheme, typrDarkTheme],
+    // Le champ `name` est ce sous quoi Shiki indexe le langage ; il doit valoir
+    // l'id Monaco, alors que la grammaire porte le nom d'affichage « typR ».
+    langs: [{ ...typrGrammar, name: TYPR_LANGUAGE_ID }],
+    engine: createJavaScriptRegexEngine(),
   });
 }

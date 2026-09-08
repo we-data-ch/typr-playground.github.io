@@ -3,8 +3,9 @@ import type { OnMount, BeforeMount } from '@monaco-editor/react';
 import { useCallback, useRef } from 'react';
 import {
   registerTypRLanguage,
-  defineTypRTheme,
   TYPR_LANGUAGE_ID,
+  TYPR_LIGHT_THEME,
+  TYPR_DARK_THEME,
 } from '../lib/monaco-typr';
 
 interface EditorProps {
@@ -29,8 +30,8 @@ export function Editor({ value, onChange, theme, onRun }: EditorProps) {
   // Register language before mount
   const handleBeforeMount: BeforeMount = useCallback((monaco) => {
     if (!languageRegistered) {
+      // Enregistre le langage, la grammaire générée et les deux thèmes d'un coup.
       registerTypRLanguage(monaco);
-      defineTypRTheme(monaco);
       languageRegistered = true;
     }
     monacoRef.current = monaco;
@@ -38,6 +39,21 @@ export function Editor({ value, onChange, theme, onRun }: EditorProps) {
 
   const handleMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
+
+    // Insert left arrow "<-" with Alt + -
+    editor.addAction({
+      id: 'insert-left-arrow',
+      label: 'Insert Left Arrow (<-)',
+      keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.Minus],
+      run: (ed) => {
+        const selection = ed.getSelection();
+        if (!selection) return;
+        ed.executeEdits('insert-left-arrow', [{
+          range: selection,
+          text: '<-',
+        }]);
+      },
+    });
 
     // Add keyboard shortcut for running code
     editor.addAction({
@@ -67,7 +83,7 @@ export function Editor({ value, onChange, theme, onRun }: EditorProps) {
   }, [onChange]);
 
   // Determine theme name
-  const monacoTheme = theme === 'dark' ? 'typr-dark' : 'typr-light';
+  const monacoTheme = theme === 'dark' ? TYPR_DARK_THEME : TYPR_LIGHT_THEME;
 
   return (
     <MonacoEditor
