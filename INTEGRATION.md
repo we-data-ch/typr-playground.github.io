@@ -50,103 +50,28 @@ Limite pratique : ~8 000 caractères d'URL. Au-delà, passer par l'`<iframe>`
 
 ## 2. Bouton « Playground » sur les blocs de code Docusaurus
 
-La documentation compte plus de 80 blocs ` ```typr `. Plutôt que d'écrire un
-lien à la main dans chaque page, on enveloppe le composant de rendu des blocs
-de code, une fois pour toutes :
+**Implémenté** dans we-data-ch/typr.github.io. Cette section décrit ce qui y
+tourne ; elle n'a plus valeur de recette à appliquer, mais de carte à lire quand
+un des deux dépôts bouge.
 
-```bash
-npm run swizzle @docusaurus/theme-classic CodeBlock -- --wrap --typescript
-```
+La documentation compte 197 blocs ` ```typr `. Plutôt qu'un lien écrit à la main
+dans chaque page, le bouton est ajouté une fois pour toutes au groupe de boutons
+d'un bloc de code — à côté de « copier » et « retour à la ligne », dont il hérite
+la position et l'apparition au survol.
 
-`src/theme/CodeBlock/index.tsx` :
+| Fichier (dépôt de la doc) | Rôle |
+| --- | --- |
+| `src/playground/url.ts` | l'encodage décrit en section 1, et rien d'autre |
+| `src/playground/meta.tsx` | lecture des mots-clés de la fence (`autorun`, `noplayground`) |
+| `src/theme/CodeBlock/Buttons/index.tsx` | swizzle du groupe de boutons : y insère le bouton |
+| `src/theme/CodeBlock/Buttons/PlaygroundButton/` | le bouton lui-même (un `<a target="_blank">`) |
+| `src/theme/CodeBlock/Content/Element.js` | publie la metastring vers le bouton |
+| `src/syntax/shiki.ts` | conserve la metastring que Shiki jetait |
 
-```tsx
-import CodeBlock from '@theme-original/CodeBlock';
-import type CodeBlockType from '@theme/CodeBlock';
-import type {WrapperProps} from '@docusaurus/types';
-import styles from './styles.module.css';
+Le bouton n'apparaît que sur les blocs dont la langue est `typr` — les blocs
+` ```r `, ` ```bash `, ` ```json ` n'ont rien à faire dans un playground TypR.
 
-type Props = WrapperProps<typeof CodeBlockType>;
-
-const PLAYGROUND_URL = 'https://we-data-ch.github.io/typr-playground.github.io/';
-
-function encodeCode(code: string): string {
-  const bytes = new TextEncoder().encode(code);
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-export default function CodeBlockWrapper(props: Props) {
-  const code = typeof props.children === 'string' ? props.children.replace(/\n$/, '') : null;
-  const language =
-    props.language ??
-    (typeof props.className === 'string'
-      ? /language-(\w+)/.exec(props.className)?.[1]
-      : undefined);
-  const meta = props.metastring ?? '';
-
-  // `noplayground` sur la clôture du bloc désactive le bouton (extrait
-  // volontairement incomplet, pseudo-code, exemple qui doit échouer…).
-  if (language !== 'typr' || !code || meta.includes('noplayground')) {
-    return <CodeBlock {...props} />;
-  }
-
-  const params = new URLSearchParams({code: encodeCode(code)});
-  if (meta.includes('autorun')) params.set('run', '1');
-
-  return (
-    <div className={styles.wrapper}>
-      <CodeBlock {...props} />
-      <a
-        className={styles.button}
-        href={`${PLAYGROUND_URL}?${params}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        ▶ Playground
-      </a>
-    </div>
-  );
-}
-```
-
-`src/theme/CodeBlock/styles.module.css` — le bouton se place en bas à droite,
-le coin haut droit étant déjà occupé par le bouton « copier » de Docusaurus :
-
-```css
-.wrapper {
-  position: relative;
-}
-
-.button {
-  position: absolute;
-  right: 0.5rem;
-  bottom: 1.3rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  line-height: 1.6;
-  text-decoration: none;
-  color: var(--ifm-color-primary-lightest);
-  background: var(--ifm-pre-background);
-  border: 1px solid var(--ifm-color-emphasis-300);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.wrapper:hover .button,
-.button:focus {
-  opacity: 1;
-}
-
-.button:hover {
-  text-decoration: none;
-  border-color: var(--ifm-color-primary);
-}
-```
-
-Usage dans les pages, sans rien changer aux blocs existants :
+### Mots-clés de fence
 
 ````markdown
 ```typr
@@ -160,10 +85,33 @@ print(x);
 ```
 
 ```typr noplayground
-# extrait de syntaxe, pas un programme complet
-type Vector <- Vector[3, int];
+# fragment de syntaxe, pas un programme complet
+type Vector <- [#N, int];
 ```
 ````
+
+`noplayground` compte : sur les 222 blocs ` ```typr ` du site (doc et blog),
+85 seulement passent un `typr check` réel. Les 137 autres sont — pour
+l'essentiel — des fragments volontaires (expressions de type isolées, corps
+remplacés par `/* ... */`, lignes sans point-virgule) ; envoyer ceux-là au
+playground n'offrirait qu'un message d'erreur, ils portent donc le mot-clé. Ce
+partage a été établi en passant chaque bloc au compilateur, une fois : quand un
+exemple est ajouté ou corrigé, c'est à l'auteur de le refaire pour ce bloc-là.
+
+### Deux détails non évidents
+
+**La metastring ne survit pas à Shiki.** Docusaurus la pose en propriété du
+`<code>` (remark `codeCompatPlugin`), mais `@shikijs/rehype` remplace le nœud
+`<pre>` entier par le sien : tout ce qu'il portait disparaît. Un transformer
+Shiki la réécrit sur le nœud produit, sans quoi ` ```typr noplayground ` serait
+indiscernable de ` ```typr `.
+
+**Le contexte de bloc de Docusaurus ne la transporte pas non plus.**
+`useCodeBlockContext().metadata` donne le code, la langue, le titre et les
+lignes — pas la metastring — et `@theme/CodeBlock/Buttons` ne reçoit qu'un
+`className`. Le dernier composant qui la voit est
+`CodeBlock/Content/Element` : il la republie dans un contexte local
+(`src/playground/meta.tsx`) que le bouton consomme.
 
 ## 3. Playground embarqué en `<iframe>`
 
