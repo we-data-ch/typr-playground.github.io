@@ -91,12 +91,19 @@ type Vector <- [#N, int];
 ````
 
 `noplayground` compte : sur les 222 blocs ` ```typr ` du site (doc et blog),
-85 seulement passent un `typr check` réel. Les 137 autres sont — pour
-l'essentiel — des fragments volontaires (expressions de type isolées, corps
-remplacés par `/* ... */`, lignes sans point-virgule) ; envoyer ceux-là au
-playground n'offrirait qu'un message d'erreur, ils portent donc le mot-clé. Ce
-partage a été établi en passant chaque bloc au compilateur, une fois : quand un
-exemple est ajouté ou corrigé, c'est à l'auteur de le refaire pour ce bloc-là.
+177 passent un `typr check` réel. Les 45 autres sont des fragments assumés —
+tables de syntaxe, sigils de kind isolés, exemples volontairement invalides,
+projets multi-fichiers (`mod person;`), et une poignée de formes documentées que
+le compilateur ne sait pas encore lire (`@Logger$log:`, `t.1`, motifs `match`
+littéraux, `import Math;`) ; envoyer ceux-là au playground n'offrirait qu'un
+message d'erreur, ils portent donc le mot-clé.
+
+Les blocs jouables sont **autoportants** : quand un exemple s'appuie sur les
+définitions d'un bloc précédent de la page, celles-ci sont recopiées en tête du
+bloc dans un préambule `# --- setup, ... ---`, de façon qu'un clic sur *play*
+compile toujours. Le partage a été établi en passant chaque bloc au
+compilateur : quand un exemple est ajouté ou corrigé, c'est à l'auteur de le
+refaire pour ce bloc-là.
 
 ### Deux détails non évidents
 

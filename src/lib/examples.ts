@@ -45,15 +45,12 @@ type List <- list {
 let list0 <- list(a = 3, b = false);
 
 # Vectors combines existing types as a sequence
-type Vector <- Vector[3, int];
+type Vector <- [3, int];
 
 # Has a default constructor
 let vector <- c(1, 2, 3);
 
-# Array as an extension of vector
-type Array <- [4, bool];
-
-# Has a default constructor
+# Has another default constructor
 let array <- [true, false, false, true];
 
 # Function are the back bones of any language
@@ -111,7 +108,7 @@ print(add(5, 3));
 
 # Using the functions with pipes
 (5) |> add(3)
-	|> print();
+    |> print();
 
 # Using the functions with method calling
 (5).add(3)
@@ -160,7 +157,7 @@ let list1 <- list(name = "Anna", age = 45);
 let list2 <- :{name: "Anna", age: 45};
 
 # Function inheritance
-let is_minor <- fn(p: {age: int}): bool {
+let is_minor <- fn(p: list{age: int}): bool {
 	p$age < 18
 };
 
@@ -206,15 +203,15 @@ type Person = list {
 	age: int
 };
 
-new_person <- fn(name: char, age: int): Person {
+let new_person <- fn(name: char, age: int): Person {
 	list(name = name, age = age)
 };
 
-is_minor <- fn(p: Person): bool {
+let is_minor <- fn(p: Person): bool {
 	p$age < 18
 };
 
-alice <- new_person("Alice", 35);
+let alice <- new_person("Alice", 35);
 
 alice.is_minor()`
   },
