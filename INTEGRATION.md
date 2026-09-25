@@ -28,9 +28,12 @@ https://we-data-ch.github.io/typr-playground.github.io/
 code à charger : contrairement à `code`/`src`, ils sont mis à jour en continu par
 `history.pushState`/`replaceState` (`src/lib/share.ts`, `pushGraphFocus`/
 `replaceGraphFocus`/`pushCodeView`) au fil de la navigation dans le graphe, pour
-que Précédent/Suivant du navigateur fonctionnent nativement. Ce ne sont pas
-(encore) des mots-clés de fence côté documentation — seulement une adresse
-partageable une fois dans le playground.
+que Précédent/Suivant du navigateur fonctionnent nativement.
+
+Depuis ` ```typr graph ` (section 2 ci-dessous, we-data-ch/typr.github.io), ce
+sont aussi des mots-clés de fence : `graph` produit un lien `?code=...&view=graph`
+plutôt que le lien habituel, et `graph focus=<nom>` y ajoute `&focus=val:<nom>`
+(ou `&focus=<BlockKey complète>` si `<nom>` contient déjà un `:`).
 
 Exemples :
 
@@ -73,7 +76,7 @@ la position et l'apparition au survol.
 | Fichier (dépôt de la doc) | Rôle |
 | --- | --- |
 | `src/playground/url.ts` | l'encodage décrit en section 1, et rien d'autre |
-| `src/playground/meta.tsx` | lecture des mots-clés de la fence (`autorun`, `noplayground`) |
+| `src/playground/meta.tsx` | lecture des mots-clés de la fence (`autorun`, `noplayground`, `graph`, `focus=`) |
 | `src/theme/CodeBlock/Buttons/index.tsx` | swizzle du groupe de boutons : y insère le bouton |
 | `src/theme/CodeBlock/Buttons/PlaygroundButton/` | le bouton lui-même (un `<a target="_blank">`) |
 | `src/theme/CodeBlock/Content/Element.js` | publie la metastring vers le bouton |
@@ -99,7 +102,27 @@ print(x);
 # fragment de syntaxe, pas un programme complet
 type Vector <- [#N, int];
 ```
+
+```typr graph
+module Math {
+    let pi <- 3.14159;
+    @pub let pi_approx <- 3.14;
+};
+```
+
+```typr graph focus=Math/pi_approx
+module Math {
+    let pi <- 3.14159;
+    @pub let pi_approx <- 3.14;
+};
+```
 ````
+
+`graph` (spec `visualization_graph_v2.md` §11 « Documentation (G) ») ouvre le
+playground sur l'onglet Graph au lieu d'exécuter le code : autre icône, autre
+infobulle, et `autorun` n'a alors plus de sens (ignoré). `graph focus=<nom>`
+ouvre directement sur le bloc `<nom>` (`val:` sous-entendu — voir section 1) au
+lieu de la racine du programme.
 
 `noplayground` compte : sur les 222 blocs ` ```typr ` du site (doc et blog),
 177 passent un `typr check` réel. Les 45 autres sont des fragments assumés —
