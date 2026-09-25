@@ -150,6 +150,103 @@ export class CompileResult {
 if (Symbol.dispose) CompileResult.prototype[Symbol.dispose] = CompileResult.prototype.free;
 
 /**
+ * Result of building the block-graph view
+ */
+export class GraphResult {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(GraphResult.prototype);
+        obj.__wbg_ptr = ptr;
+        GraphResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        GraphResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_graphresult_free(ptr, 0);
+    }
+    /**
+     * Formatted type error messages (empty string if no errors)
+     * @returns {string}
+     */
+    get errors() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_graphresult_errors(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Pretty-printed JSON of the `BlockGraph` (spec §9), empty when `has_errors` is set
+     * @returns {string}
+     */
+    get graph_json() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_graphresult_graph_json(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Whether type errors prevented building the graph
+     * @returns {boolean}
+     */
+    get has_errors() {
+        const ret = wasm.__wbg_get_graphresult_has_errors(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Formatted type error messages (empty string if no errors)
+     * @param {string} arg0
+     */
+    set errors(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_graphresult_errors(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Pretty-printed JSON of the `BlockGraph` (spec §9), empty when `has_errors` is set
+     * @param {string} arg0
+     */
+    set graph_json(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_graphresult_graph_json(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Whether type errors prevented building the graph
+     * @param {boolean} arg0
+     */
+    set has_errors(arg0) {
+        wasm.__wbg_set_graphresult_has_errors(this.__wbg_ptr, arg0);
+    }
+}
+if (Symbol.dispose) GraphResult.prototype[Symbol.dispose] = GraphResult.prototype.free;
+
+/**
  * TypR compiler instance (for backwards compatibility)
  *
  * Prefer using the standalone functions `compile()` and `typeCheck()` instead.
@@ -440,6 +537,33 @@ export function parse(source) {
 }
 
 /**
+ * Build the block-graph view of TypR source code (`visualization_graph_v2.md`)
+ *
+ * The graph is only built for source that type-checks: totality of the builder (no panic) is
+ * only guaranteed for a program that passes `typr check` (spec §12 étape 1). When there are
+ * type errors, `has_errors` is set and `graph_json` is left empty, matching `typeCheck()`.
+ * @param {string} source
+ * @returns {GraphResult}
+ */
+export function semanticGraph(source) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.semanticGraph(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return GraphResult.__wrap(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * Transpile TypR source code to R without type checking
  * @param {string} source
  * @returns {string}
@@ -517,6 +641,9 @@ function __wbg_get_imports() {
 const CompileResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_compileresult_free(ptr >>> 0, 1));
+const GraphResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_graphresult_free(ptr >>> 0, 1));
 const TypRCompilerFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_typrcompiler_free(ptr >>> 0, 1));

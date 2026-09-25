@@ -1,0 +1,272 @@
+/* Graph tab (visualization_graph_v2.md §11) */
+
+.graph-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.graph-empty {
+  padding: 1rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Breadcrumb */
+.graph-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.breadcrumb-sep {
+  color: var(--text-muted);
+  margin-right: 0.25rem;
+}
+
+.breadcrumb-link {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: inherit;
+  padding: 0.125rem 0.25rem;
+  border-radius: 4px;
+}
+
+.breadcrumb-link:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 0.125rem 0.25rem;
+}
+
+/* Canvas */
+.graph-canvas-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.graph-canvas {
+  flex: 1;
+  min-width: 0;
+}
+
+.graph-canvas .react-flow {
+  background: var(--bg-editor);
+}
+
+/* Block nodes */
+.block-node {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--text-muted);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.block-node.selected {
+  border-color: var(--accent-primary);
+  border-left-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.block-node.kind-function { border-left-color: var(--accent-primary); }
+.block-node.kind-type { border-left-color: var(--success); }
+.block-node.kind-control { border-left-color: var(--warning); }
+.block-node.kind-module { border-left-color: var(--text-secondary); }
+
+.block-node-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.block-node-kind {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.block-node-name {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block-node-type {
+  padding: 0.125rem 0.5rem 0.375rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block-node-port-label {
+  position: absolute;
+  top: -0.6em;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  padding: 0 0.1875rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.port-label-in { left: 0.375rem; }
+.port-label-out { right: 0.375rem; }
+
+.react-flow__handle.handle-implicit {
+  border-style: dashed;
+}
+
+/* The second Handle of a port's source/target pair (see BlockNode) — same position, kept out of
+   sight so a port still shows a single dot. */
+.react-flow__handle.handle-shadow {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Detail panel */
+.detail-panel {
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.detail-panel-title {
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-panel-content {
+  padding: 0.75rem;
+  font-size: 0.8125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.detail-fields {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.5rem;
+}
+
+.detail-fields dt {
+  color: var(--text-muted);
+}
+
+.detail-fields dd {
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+
+.detail-panel h4 {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin-bottom: 0.375rem;
+}
+
+.port-list, .relation-list, .evidence-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.port-type {
+  color: var(--text-muted);
+}
+
+.port-flag {
+  margin-left: 0.375rem;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 0 0.25rem;
+}
+
+.relation-link {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.125rem 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.relation-link:hover {
+  color: var(--accent-primary);
+}
+
+.relation-kind {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.relation-meta {
+  margin-left: 0.375rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.evidence-list {
+  margin: 0.125rem 0 0 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Monaco decoration for the block selected in the graph (§11) */
+.graph-highlight-range {
+  background: var(--accent-light);
+}
+
+.graph-highlight-inline {
+  border-bottom: 1px solid var(--accent-primary);
+}

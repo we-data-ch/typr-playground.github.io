@@ -21,12 +21,23 @@ https://we-data-ch.github.io/typr-playground.github.io/
 | `run` | `1` | Compile et exécute dès que le compilateur et WebR sont prêts. |
 | `theme` | `dark` \| `light` | Force le thème pour cette visite, sans écraser la préférence enregistrée du visiteur. |
 | `embed` | `1` | Chrome réduit (pas de menu *Examples*, bouton « Playground » vers la version plein écran). Pour les `<iframe>`. |
+| `view` | `graph` | Ouvre l'onglet Graph (visualiseur de code en graphe de blocs, `visualization_graph_v2.md`) au lieu de l'onglet Output. |
+| `focus` | `<BlockKey>` (ex. `val:norm2`, `val:norm2/a`) | Bloc affiché dans le graphe. Ignoré si `view` n'est pas `graph`. |
+
+`view`/`focus` décrivent l'état de navigation du playground lui-même plutôt que le
+code à charger : contrairement à `code`/`src`, ils sont mis à jour en continu par
+`history.pushState`/`replaceState` (`src/lib/share.ts`, `pushGraphFocus`/
+`replaceGraphFocus`/`pushCodeView`) au fil de la navigation dans le graphe, pour
+que Précédent/Suivant du navigateur fonctionnent nativement. Ce ne sont pas
+(encore) des mots-clés de fence côté documentation — seulement une adresse
+partageable une fois dans le playground.
 
 Exemples :
 
 ```
 …/?src=let%20x%3A%20int%20%3C-%2042%3B%0Aprint(x)%3B&run=1
 …/?code=bGV0IHg6IGludCA8LSA0MjsKcHJpbnQoeCk7&run=1&theme=dark
+…/?code=…&view=graph&focus=val%3Anorm2
 ```
 
 `base64url` = base64 standard dont les `+` et `/` deviennent `-` et `_`, sans

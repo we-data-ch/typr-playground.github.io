@@ -1,5 +1,13 @@
 // Type definitions for TypR WASM module
 
+import type { BlockGraph } from './graph';
+
+export interface GraphResult {
+  graph_json: string;
+  has_errors: boolean;
+  errors: string;
+}
+
 export interface CompileResult {
   r_code: string;
   type_annotations: string;
@@ -20,6 +28,7 @@ export interface TypRWasmModule {
   parse: (source: string) => string;
   transpile: (source: string) => string;
   compileMultiple: (filesJson: string) => CompileResult;
+  semanticGraph: (source: string) => GraphResult;
 }
 
 let wasmModule: TypRWasmModule | null = null;
@@ -96,6 +105,27 @@ export function transpileTypR(source: string): { rCode: string; error: string | 
     return { rCode, error: null };
   } catch (e) {
     return { rCode: '', error: String(e) };
+  }
+}
+
+// Build the block-graph view of the source (`visualization_graph_v2.md`). Only built for source
+// that type-checks (see semanticGraph's doc comment in typr-wasm's lib.rs); otherwise graph is
+// null and errors carries the formatted type errors, same shape as typeCheckTypR.
+export function semanticGraphTypR(
+  source: string
+): { graph: BlockGraph | null; hasErrors: boolean; errors: string } {
+  if (!wasmModule) {
+    return { graph: null, hasErrors: true, errors: 'TypR compiler not initialized' };
+  }
+
+  try {
+    const result = wasmModule.semanticGraph(source);
+    if (result.has_errors) {
+      return { graph: null, hasErrors: true, errors: result.errors };
+    }
+    return { graph: JSON.parse(result.graph_json) as BlockGraph, hasErrors: false, errors: '' };
+  } catch (e) {
+    return { graph: null, hasErrors: true, errors: String(e) };
   }
 }
 

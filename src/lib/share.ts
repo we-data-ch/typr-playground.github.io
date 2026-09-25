@@ -12,14 +12,27 @@
 //   ?run=1              lance l'exécution dès que le compilateur et WebR sont prêts
 //   ?theme=dark|light   force le thème (sans écraser la préférence enregistrée)
 //   ?embed=1            chrome réduit, pour une intégration en <iframe>
+//
+// Depuis l'étape 4 du graphe de blocs (visualization_graph_v2.md §11), deux paramètres
+// additionnels décrivent la vue active plutôt que le code :
+//
+//   ?view=graph          ouvre l'onglet Graph (au lieu de l'onglet Output par défaut)
+//   ?focus=<BlockKey>     bloc affiché dans le graphe (ex. `val:norm2`, `val:norm2/a`)
+//
+// Ces deux-là sont gérés séparément de `code`/`theme`/`embed` par `pushGraphFocus`/
+// `pushCodeView` (ci-dessous) : ils changent à chaque navigation dans le graphe, via
+// `history.pushState`, sans reconstruire l'URL de partage au complet.
 
 export type SharedTheme = 'light' | 'dark';
+export type SharedView = 'code' | 'graph';
 
 export interface SharedParams {
   code: string | null;
   autorun: boolean;
   theme: SharedTheme | null;
   embed: boolean;
+  view: SharedView;
+  focus: string | null;
 }
 
 /** Au-delà, les navigateurs et les proxies commencent à tronquer l'URL. */
@@ -80,13 +93,50 @@ export function readSharedParams(search: string = window.location.search): Share
   const code = encoded ? decodeCode(encoded) : plain;
 
   const theme = params.get('theme');
+  const view = params.get('view');
 
   return {
     code: code || null,
     autorun: isTruthy(params.get('run')),
     theme: theme === 'dark' || theme === 'light' ? theme : null,
     embed: isTruthy(params.get('embed')),
+    view: view === 'graph' ? 'graph' : 'code',
+    focus: params.get('focus') || null,
   };
+}
+
+/**
+ * Navigue vers un bloc du graphe : met à jour `view=graph&focus=<key>` dans l'URL courante par
+ * `history.pushState`, sans toucher `code`/`theme`/`embed` ni recharger la page — chaque bloc
+ * visité gagne ainsi une entrée d'historique, pour que Précédent/Suivant du navigateur marchent
+ * nativement (spec §11).
+ */
+export function pushGraphFocus(focus: string): void {
+  const url = new URL(window.location.href);
+  url.searchParams.set('view', 'graph');
+  url.searchParams.set('focus', focus);
+  window.history.pushState({ view: 'graph', focus }, '', url);
+}
+
+/** Retour à l'onglet Output : retire `view`/`focus` de l'URL courante. */
+export function pushCodeView(): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('view');
+  url.searchParams.delete('focus');
+  window.history.pushState({ view: 'code' }, '', url);
+}
+
+/**
+ * Comme `pushGraphFocus`, mais par `history.replaceState` : pour la synchronisation passive
+ * déclenchée par un déplacement du curseur dans Monaco (§11), qui ne doit pas empiler une entrée
+ * d'historique à chaque clic — seule une navigation délibérée dans le graphe (fil d'Ariane,
+ * double-clic, Alt+clic) le fait.
+ */
+export function replaceGraphFocus(focus: string): void {
+  const url = new URL(window.location.href);
+  url.searchParams.set('view', 'graph');
+  url.searchParams.set('focus', focus);
+  window.history.replaceState({ view: 'graph', focus }, '', url);
 }
 
 export interface ShareOptions {
