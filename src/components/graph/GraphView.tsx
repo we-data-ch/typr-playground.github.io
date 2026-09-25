@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { ReactFlow, Background, Controls, type Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { oneLevel, parentKey, resolveDefinition, type BlockGraph } from '../../lib/graph';
+import { modifiedDetail, statusFor, type GraphDiff } from '../../lib/graph-diff';
 import { useElkLayout } from './useElkLayout';
 import { BlockNode, type BlockNodeType } from './BlockNode';
 import { DetailPanel } from './DetailPanel';
@@ -19,6 +20,9 @@ interface GraphViewProps {
   selectedKey: string | null;
   onSelectKey: (key: string | null) => void;
   onEnter: (key: string) => void;
+  /** Set only from the Diff tab (spec §12 étape 6): colors each node by its diff status against
+   *  a baseline, on top of the same one-level rendering used everywhere else. */
+  diff?: GraphDiff | null;
 }
 
 function breadcrumbFor(focus: string, root: string): string[] {
@@ -32,7 +36,7 @@ function breadcrumbFor(focus: string, root: string): string[] {
   return chain;
 }
 
-export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter }: GraphViewProps) {
+export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, diff }: GraphViewProps) {
   const view = useMemo(() => oneLevel(graph, focus), [graph, focus]);
   const { layout } = useElkLayout(view);
 
@@ -48,13 +52,13 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter }: G
           id: n.key,
           type: 'block' as const,
           position: { x: n.x, y: n.y },
-          data: { block },
+          data: { block, diffStatus: diff ? (statusFor(diff, n.key) ?? undefined) : undefined },
           selected: n.key === selectedKey,
           draggable: false,
         },
       ];
     });
-  }, [view, layout, selectedKey]);
+  }, [view, layout, selectedKey, diff]);
 
   const edges: Edge[] = useMemo(() => {
     if (!layout) return [];
@@ -134,6 +138,7 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter }: G
           <DetailPanel
             graph={graph}
             block={selectedBlock}
+            diffDetail={diff ? modifiedDetail(diff, selectedBlock.key) : undefined}
             onGoToBlock={(key) => {
               const parent = parentKey(key) ?? graph.root;
               onEnter(parent);

@@ -4,12 +4,15 @@
 // an interface) usually cross level boundaries by design (spec §3.3's frontier rule).
 
 import type { Block, BlockGraph, Confidence, Relation } from '../../lib/graph';
+import type { BlockDiff } from '../../lib/graph-diff';
 
 interface DetailPanelProps {
   graph: BlockGraph;
   block: Block;
   onGoToBlock: (key: string) => void;
   onClose: () => void;
+  /** Set only from the Diff tab, when `block` was reported modified (spec §12 étape 6). */
+  diffDetail?: BlockDiff | null;
 }
 
 function confidenceLabel(c: Confidence): string {
@@ -17,7 +20,7 @@ function confidenceLabel(c: Confidence): string {
   return c.confidence;
 }
 
-export function DetailPanel({ graph, block, onGoToBlock, onClose }: DetailPanelProps) {
+export function DetailPanel({ graph, block, onGoToBlock, onClose, diffDetail }: DetailPanelProps) {
   const relations = graph.relations.filter((r) => r.from === block.key || r.to === block.key);
   const outgoing = relations.filter((r) => r.from === block.key);
   const incoming = relations.filter((r) => r.to === block.key && r.from !== block.key);
@@ -46,6 +49,51 @@ export function DetailPanel({ graph, block, onGoToBlock, onClose }: DetailPanelP
           <dt>Origin</dt>
           <dd>{typeof block.origin === 'string' ? block.origin : `R package: ${block.origin.RPackage}`}</dd>
         </dl>
+
+        {diffDetail && (
+          <section>
+            <h4>Changes</h4>
+            <ul className="diff-change-list">
+              {diffDetail.type && (
+                <li>
+                  type: <span className="mono diff-removed-text">{diffDetail.type[0] ?? '_'}</span>
+                  {' → '}
+                  <span className="mono diff-added-text">{diffDetail.type[1] ?? '_'}</span>
+                </li>
+              )}
+              {diffDetail.captures && (
+                <li>
+                  captures:{' '}
+                  {diffDetail.captures.added.map((p) => (
+                    <span key={`+${p.name}`} className="mono diff-added-text">
+                      +{p.name}{' '}
+                    </span>
+                  ))}
+                  {diffDetail.captures.removed.map((p) => (
+                    <span key={`-${p.name}`} className="mono diff-removed-text">
+                      −{p.name}{' '}
+                    </span>
+                  ))}
+                </li>
+              )}
+              {diffDetail.interface && (
+                <li>
+                  interface:{' '}
+                  {diffDetail.interface.added.map((k) => (
+                    <span key={`+${k}`} className="mono diff-added-text">
+                      +{k}{' '}
+                    </span>
+                  ))}
+                  {diffDetail.interface.removed.map((k) => (
+                    <span key={`-${k}`} className="mono diff-removed-text">
+                      −{k}{' '}
+                    </span>
+                  ))}
+                </li>
+              )}
+            </ul>
+          </section>
+        )}
 
         {block.inputs.length > 0 && (
           <section>

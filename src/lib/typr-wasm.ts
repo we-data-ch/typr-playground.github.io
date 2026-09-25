@@ -1,9 +1,18 @@
 // Type definitions for TypR WASM module
 
 import type { BlockGraph } from './graph';
+import type { GraphDiff } from './graph-diff';
 
 export interface GraphResult {
   graph_json: string;
+  has_errors: boolean;
+  errors: string;
+}
+
+export interface GraphDiffResult {
+  diff_json: string;
+  old_graph_json: string;
+  new_graph_json: string;
   has_errors: boolean;
   errors: string;
 }
@@ -29,6 +38,7 @@ export interface TypRWasmModule {
   transpile: (source: string) => string;
   compileMultiple: (filesJson: string) => CompileResult;
   semanticGraph: (source: string) => GraphResult;
+  semanticGraphDiff: (oldSource: string, newSource: string) => GraphDiffResult;
 }
 
 let wasmModule: TypRWasmModule | null = null;
@@ -126,6 +136,35 @@ export function semanticGraphTypR(
     return { graph: JSON.parse(result.graph_json) as BlockGraph, hasErrors: false, errors: '' };
   } catch (e) {
     return { graph: null, hasErrors: true, errors: String(e) };
+  }
+}
+
+// Build and diff the block-graph views of two source versions (spec §12 étape 6), for the
+// playground's Diff view. Same error convention as semanticGraphTypR: `graph`/`diff` are null
+// whenever either side fails to type-check, and `errors` carries the formatted messages
+// (prefixed `(old)`/`(new)` by the WASM side so both failures are visible at once).
+export function semanticGraphDiffTypR(
+  oldSource: string,
+  newSource: string
+): { diff: GraphDiff | null; oldGraph: BlockGraph | null; newGraph: BlockGraph | null; hasErrors: boolean; errors: string } {
+  if (!wasmModule) {
+    return { diff: null, oldGraph: null, newGraph: null, hasErrors: true, errors: 'TypR compiler not initialized' };
+  }
+
+  try {
+    const result = wasmModule.semanticGraphDiff(oldSource, newSource);
+    if (result.has_errors) {
+      return { diff: null, oldGraph: null, newGraph: null, hasErrors: true, errors: result.errors };
+    }
+    return {
+      diff: JSON.parse(result.diff_json) as GraphDiff,
+      oldGraph: JSON.parse(result.old_graph_json) as BlockGraph,
+      newGraph: JSON.parse(result.new_graph_json) as BlockGraph,
+      hasErrors: false,
+      errors: '',
+    };
+  } catch (e) {
+    return { diff: null, oldGraph: null, newGraph: null, hasErrors: true, errors: String(e) };
   }
 }
 

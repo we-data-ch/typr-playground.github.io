@@ -262,6 +262,91 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* Diff tab (spec §12 étape 6) */
+
+.diff-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.diff-graph-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.diff-graph-container .graph-view {
+  flex: 1;
+}
+
+.diff-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.diff-summary-counts {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.diff-summary-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.diff-count {
+  font-weight: 600;
+}
+
+.diff-added-text { color: var(--success); }
+.diff-removed-text { color: var(--error); }
+.diff-modified-text { color: var(--warning); }
+
+.diff-reset-baseline {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+}
+
+.diff-removed-list {
+  flex-basis: 100%;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Diff-status nodes: same left-border convention as kind groups, but a diff status always wins
+   (a modified Function is shown as modified, not as a function). */
+.block-node.diff-added { border-left-color: var(--success); box-shadow: 0 0 0 1px var(--success); }
+.block-node.diff-modified { border-left-color: var(--warning); box-shadow: 0 0 0 1px var(--warning); }
+
+.block-node-diff-badge {
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.block-node-diff-badge.diff-added { color: var(--success); }
+.block-node-diff-badge.diff-modified { color: var(--warning); }
+
+.diff-change-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
 /* Monaco decoration for the block selected in the graph (§11) */
 .graph-highlight-range {
   background: var(--accent-light);

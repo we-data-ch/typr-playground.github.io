@@ -1,11 +1,19 @@
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import type { Block } from '../../lib/graph';
+import type { DiffStatus } from '../../lib/graph-diff';
 import { NODE_WIDTH, nodeHeight, portOffsetY } from './layout-constants';
 
 export interface BlockNodeData {
   block: Block;
+  /** Set only in the Diff view (spec §12 étape 6); `undefined` elsewhere, and for an unchanged
+   *  block there too — most nodes, so that stays the common case rather than a three-way enum.
+   *  Only ever `'added'`/`'modified'` in practice: a `'removed'` key has no node to attach to
+   *  (it doesn't exist in the graph being rendered), so it's reported separately (`DiffSummary`). */
+  diffStatus?: DiffStatus;
   [key: string]: unknown;
 }
+
+const diffBadge: Record<DiffStatus, string> = { added: '+', removed: '−', modified: '~' };
 
 export type BlockNodeType = Node<BlockNodeData, 'block'>;
 
@@ -32,16 +40,18 @@ function kindGroup(kind: Block['kind']): string {
 }
 
 export function BlockNode({ data, selected }: NodeProps<BlockNodeType>) {
-  const { block } = data;
+  const { block, diffStatus } = data;
   const title = block.name ?? block.key.split('/').pop() ?? block.key;
+  const diffClass = diffStatus ? ` diff-${diffStatus}` : '';
 
   return (
     <div
-      className={`block-node kind-${kindGroup(block.kind)}${selected ? ' selected' : ''}`}
+      className={`block-node kind-${kindGroup(block.kind)}${diffClass}${selected ? ' selected' : ''}`}
       style={{ width: NODE_WIDTH, height: nodeHeight(block) }}
       title="Clic : sélectionner · Double-clic : entrer · Alt+clic : aller à la définition"
     >
       <div className="block-node-header">
+        {diffStatus && <span className={`block-node-diff-badge diff-${diffStatus}`}>{diffBadge[diffStatus]}</span>}
         <span className="block-node-kind">{block.kind}</span>
         <span className="block-node-name">{title}</span>
       </div>
