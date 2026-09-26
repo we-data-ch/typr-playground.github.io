@@ -150,6 +150,264 @@ export class CompileResult {
 if (Symbol.dispose) CompileResult.prototype[Symbol.dispose] = CompileResult.prototype.free;
 
 /**
+ * Result of building and diffing the block-graph views of two source versions
+ */
+export class GraphDiffResult {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(GraphDiffResult.prototype);
+        obj.__wbg_ptr = ptr;
+        GraphDiffResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        GraphDiffResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_graphdiffresult_free(ptr, 0);
+    }
+    /**
+     * Pretty-printed JSON of the `GraphDiff` (added/removed/modified block keys), empty when
+     * `has_errors` is set
+     * @returns {string}
+     */
+    get diff_json() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_graphdiffresult_diff_json(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Formatted type error messages, prefixed with `(old)`/`(new)` per side (empty if none)
+     * @returns {string}
+     */
+    get errors() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_graphdiffresult_errors(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Whether type errors on either side prevented building the diff
+     * @returns {boolean}
+     */
+    get has_errors() {
+        const ret = wasm.__wbg_get_graphdiffresult_has_errors(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Pretty-printed JSON of the *new* version's `BlockGraph`, so the playground can render the
+     * diff overlaid on a real layout without a second round-trip
+     * @returns {string}
+     */
+    get new_graph_json() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_graphdiffresult_new_graph_json(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Pretty-printed JSON of the *old* version's `BlockGraph` — only its `blocks` map is
+     * actually needed (to look up a removed key's kind/name), not its layout
+     * @returns {string}
+     */
+    get old_graph_json() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_graphdiffresult_old_graph_json(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Pretty-printed JSON of the `GraphDiff` (added/removed/modified block keys), empty when
+     * `has_errors` is set
+     * @param {string} arg0
+     */
+    set diff_json(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_graphdiffresult_diff_json(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Formatted type error messages, prefixed with `(old)`/`(new)` per side (empty if none)
+     * @param {string} arg0
+     */
+    set errors(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_graphdiffresult_errors(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Whether type errors on either side prevented building the diff
+     * @param {boolean} arg0
+     */
+    set has_errors(arg0) {
+        wasm.__wbg_set_graphdiffresult_has_errors(this.__wbg_ptr, arg0);
+    }
+    /**
+     * Pretty-printed JSON of the *new* version's `BlockGraph`, so the playground can render the
+     * diff overlaid on a real layout without a second round-trip
+     * @param {string} arg0
+     */
+    set new_graph_json(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_graphdiffresult_new_graph_json(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Pretty-printed JSON of the *old* version's `BlockGraph` — only its `blocks` map is
+     * actually needed (to look up a removed key's kind/name), not its layout
+     * @param {string} arg0
+     */
+    set old_graph_json(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_graphdiffresult_old_graph_json(this.__wbg_ptr, ptr0, len0);
+    }
+}
+if (Symbol.dispose) GraphDiffResult.prototype[Symbol.dispose] = GraphDiffResult.prototype.free;
+
+/**
+ * Result of building the block-graph view
+ */
+export class GraphResult {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(GraphResult.prototype);
+        obj.__wbg_ptr = ptr;
+        GraphResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        GraphResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_graphresult_free(ptr, 0);
+    }
+    /**
+     * Formatted type error messages (empty string if no errors)
+     * @returns {string}
+     */
+    get errors() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_graphresult_errors(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Pretty-printed JSON of the `BlockGraph` (spec §9), empty when `has_errors` is set
+     * @returns {string}
+     */
+    get graph_json() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.__wbg_get_graphresult_graph_json(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Whether type errors prevented building the graph
+     * @returns {boolean}
+     */
+    get has_errors() {
+        const ret = wasm.__wbg_get_graphresult_has_errors(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Formatted type error messages (empty string if no errors)
+     * @param {string} arg0
+     */
+    set errors(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_graphresult_errors(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Pretty-printed JSON of the `BlockGraph` (spec §9), empty when `has_errors` is set
+     * @param {string} arg0
+     */
+    set graph_json(arg0) {
+        const ptr0 = passStringToWasm0(arg0, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.__wbg_set_graphresult_graph_json(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Whether type errors prevented building the graph
+     * @param {boolean} arg0
+     */
+    set has_errors(arg0) {
+        wasm.__wbg_set_graphresult_has_errors(this.__wbg_ptr, arg0);
+    }
+}
+if (Symbol.dispose) GraphResult.prototype[Symbol.dispose] = GraphResult.prototype.free;
+
+/**
  * TypR compiler instance (for backwards compatibility)
  *
  * Prefer using the standalone functions `compile()` and `typeCheck()` instead.
@@ -440,6 +698,70 @@ export function parse(source) {
 }
 
 /**
+ * Build the block-graph view of TypR source code (`visualization_graph_v2.md`)
+ *
+ * The graph is only built for source that type-checks: totality of the builder (no panic) is
+ * only guaranteed for a program that passes `typr check` (spec §12 étape 1). When there are
+ * type errors, `has_errors` is set and `graph_json` is left empty, matching `typeCheck()`.
+ * @param {string} source
+ * @returns {GraphResult}
+ */
+export function semanticGraph(source) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.semanticGraph(retptr, ptr0, len0);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return GraphResult.__wrap(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
+ * Build the block-graph views of two versions of TypR source and diff them
+ * (`visualization_graph_v2.md` §12 étape 6), for the playground's diff view.
+ *
+ * Each side is built independently through the same pipeline as `semanticGraph`: if either
+ * side has type errors, the graph on that side is not built and the diff is not computed
+ * (`has_errors`/`errors` describe whichever side(s) failed — both sides are still type-checked
+ * so a caller sees every error, not just the first). Both `old_graph_json` and `new_graph_json`
+ * are included alongside `diff_json` because the diff itself only carries keys, not full block
+ * data — the playground renders the diff overlaid on the *new* graph's layout (matching `typr
+ * graph diff`'s framing of "how did the new version change relative to the old one"), but still
+ * needs the *old* graph to show what a removed block actually was (kind, name) since a removed
+ * key has no entry in the new graph to look it up in.
+ * @param {string} old_source
+ * @param {string} new_source
+ * @returns {GraphDiffResult}
+ */
+export function semanticGraphDiff(old_source, new_source) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(old_source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(new_source, wasm.__wbindgen_export, wasm.__wbindgen_export2);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.semanticGraphDiff(retptr, ptr0, len0, ptr1, len1);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return GraphDiffResult.__wrap(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
+/**
  * Transpile TypR source code to R without type checking
  * @param {string} source
  * @returns {string}
@@ -517,6 +839,12 @@ function __wbg_get_imports() {
 const CompileResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_compileresult_free(ptr >>> 0, 1));
+const GraphDiffResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_graphdiffresult_free(ptr >>> 0, 1));
+const GraphResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_graphresult_free(ptr >>> 0, 1));
 const TypRCompilerFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_typrcompiler_free(ptr >>> 0, 1));
