@@ -1,16 +1,35 @@
 // Root of the Graph tab (spec §11): one level of the block-graph, rendered with React Flow +
 // ELK.js, plus a breadcrumb and a detail panel for the selected block. Gestures: clic (select),
-// double-clic (enter a block with a body), Alt+clic (go to definition). Keyboard nav is out of
-// scope here — spec §12 étape 4 explicitly defers it to étape 7.
+// double-clic (enter a block with a body), Alt+clic (go to definition). Keyboard nav (spec §12
+// étape 7) lives here too, as a `document`-level listener scoped to this component's lifetime —
+// it's only ever mounted while the Graph/Diff tab is on screen (see `App.tsx`), and it stands
+// down for any keystroke aimed at an input/textarea/Monaco (`isTypingTarget`).
+//
+// The canvas itself needs `tabIndex` to make this reachable at all: a plain, non-focusable `div`
+// (what every node/pane here would otherwise be) never steals focus away from Monaco on click —
+// that's standard browser behaviour, confirmed by manual CDP testing while building this — so
+// without an explicit focus target the editor would keep eating every keystroke even after the
+// user has clicked into the graph. Autofocusing on mount covers arriving at the tab; the
+// mousedown handler covers focus having drifted back to Monaco since.
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlow, Background, Controls, type Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { oneLevel, parentKey, resolveDefinition, type BlockGraph } from '../../lib/graph';
 import { modifiedDetail, statusFor, type GraphDiff } from '../../lib/graph-diff';
+import { isTypingTarget } from '../../lib/dom';
 import { useElkLayout } from './useElkLayout';
+import { nearestInDirection, type Direction } from './spatial-nav';
 import { BlockNode, type BlockNodeType } from './BlockNode';
 import { DetailPanel } from './DetailPanel';
+import { BlockSearch } from './BlockSearch';
+
+const ARROW_DIRECTIONS: Record<string, Direction> = {
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+};
 
 const nodeTypes = { block: BlockNode };
 
@@ -41,6 +60,86 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
   const { layout } = useElkLayout(view);
 
   const breadcrumb = useMemo(() => breadcrumbFor(focus, graph.root), [focus, graph.root]);
+
+  const canvasRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    canvasRef.current?.focus();
+  }, []);
+
+  const [searchOpen, setSearchOpen] = useState(false);
+  // "Dépliage sur place" (spec §12 étape 7): a selected block's Contenu section in the detail
+  // panel, toggled by Space or its own disclosure button. Reset whenever the selection changes so
+  // it doesn't stay pinned open on an unrelated block — the React-docs "adjust state during
+  // render" pattern, rather than a setState-in-effect that would trigger an extra render pass.
+  const [contentExpanded, setContentExpanded] = useState(false);
+  const [lastSelectedKey, setLastSelectedKey] = useState(selectedKey);
+  if (selectedKey !== lastSelectedKey) {
+    setLastSelectedKey(selectedKey);
+    setContentExpanded(false);
+  }
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (isTypingTarget(document.activeElement) || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === '/') {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
+
+      if (e.key === 'Escape' || e.key === 'Backspace') {
+        // `parentKey` only understands `/`-nesting; a top-level declaration (`val:sq`) is still a
+        // child of the Program root in the one-level view, just without a `/` prefix to say so —
+        // same fallback `breadcrumbFor` above uses to make sure its chain always starts at root.
+        const parent = focus === graph.root ? null : (parentKey(focus) ?? graph.root);
+        if (parent) {
+          e.preventDefault();
+          onEnter(parent);
+          onSelectKey(focus);
+        }
+        return;
+      }
+
+      if (!selectedKey) {
+        // First press with nothing selected: land on the focus block itself rather than no-op.
+        if (e.key in ARROW_DIRECTIONS) {
+          e.preventDefault();
+          onSelectKey(focus);
+        }
+        return;
+      }
+
+      const block = view?.blocks[selectedKey];
+
+      if (e.key === 'Enter') {
+        if (block?.body) {
+          e.preventDefault();
+          onEnter(selectedKey);
+        }
+      } else if (e.key === ' ') {
+        if (block?.body && block.body.children.length > 0) {
+          e.preventDefault();
+          setContentExpanded((v) => !v);
+        }
+      } else if (e.key === 'g' || e.key === 'G') {
+        const target = resolveDefinition(graph, selectedKey);
+        if (target) {
+          e.preventDefault();
+          onEnter(target);
+        }
+      } else if (e.key in ARROW_DIRECTIONS && layout) {
+        const next = nearestInDirection(layout.nodes, selectedKey, ARROW_DIRECTIONS[e.key]);
+        if (next) {
+          e.preventDefault();
+          onSelectKey(next);
+        }
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [focus, selectedKey, view, layout, graph, onEnter, onSelectKey]);
 
   const nodes: BlockNodeType[] = useMemo(() => {
     if (!view || !layout) return [];
@@ -100,7 +199,12 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
       </div>
 
       <div className="graph-canvas-row">
-        <div className="graph-canvas">
+        <div
+          className="graph-canvas"
+          ref={canvasRef}
+          tabIndex={0}
+          onMouseDown={() => canvasRef.current?.focus()}
+        >
           <ReactFlow
             key={focus}
             nodes={nodes}
@@ -132,6 +236,19 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
             <Background />
             <Controls showInteractive={false} />
           </ReactFlow>
+
+          {searchOpen && (
+            <BlockSearch
+              graph={graph}
+              onClose={() => setSearchOpen(false)}
+              onSelect={(key) => {
+                setSearchOpen(false);
+                const parent = parentKey(key) ?? graph.root;
+                onEnter(parent);
+                onSelectKey(key);
+              }}
+            />
+          )}
         </div>
 
         {selectedBlock && (
@@ -145,6 +262,8 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
               onSelectKey(key);
             }}
             onClose={() => onSelectKey(null)}
+            contentExpanded={contentExpanded}
+            onToggleContent={() => setContentExpanded((v) => !v)}
           />
         )}
       </div>

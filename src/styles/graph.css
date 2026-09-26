@@ -57,8 +57,20 @@
 }
 
 .graph-canvas {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+/* Focusable so keyboard nav (spec §12 étape 7) can steal focus away from Monaco on click — see
+   the comment in GraphView.tsx. Only shown for keyboard-driven focus, not a mouse click. */
+.graph-canvas:focus {
+  outline: none;
+}
+
+.graph-canvas:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
 }
 
 .graph-canvas .react-flow {
@@ -345,6 +357,105 @@
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
+}
+
+/* Block search (`/`, spec §12 étape 7) */
+.block-search {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  max-width: calc(100% - 1.5rem);
+  z-index: 10;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md, var(--shadow-sm));
+  overflow: hidden;
+}
+
+.block-search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+}
+
+.block-search-input:focus {
+  outline: none;
+}
+
+.block-search-results {
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.block-search-result {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  background: transparent;
+  text-align: left;
+  font-size: 0.8125rem;
+}
+
+.block-search-result.highlighted,
+.block-search-result:hover {
+  background: var(--bg-tertiary);
+}
+
+.block-search-result-kind {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.block-search-result-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block-search-empty {
+  padding: 0.5rem 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
+/* Contenu disclosure (dépliage sur place, spec §12 étape 7) */
+.disclosure-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 0.375rem;
+}
+
+.disclosure-toggle .disclosure-title {
+  margin-bottom: 0;
+}
+
+.disclosure-chevron {
+  display: inline-block;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  transition: transform 0.1s ease;
+}
+
+.disclosure-chevron.open {
+  transform: rotate(90deg);
 }
 
 /* Monaco decoration for the block selected in the graph (§11) */

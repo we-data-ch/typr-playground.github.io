@@ -13,6 +13,10 @@ interface DetailPanelProps {
   onClose: () => void;
   /** Set only from the Diff tab, when `block` was reported modified (spec §12 étape 6). */
   diffDetail?: BlockDiff | null;
+  /** "Dépliage sur place" (spec §12 étape 7): whether the Contenu section below is open. Lifted
+   *  to the caller so the Space shortcut in `GraphView` can drive the same toggle as the button. */
+  contentExpanded: boolean;
+  onToggleContent: () => void;
 }
 
 function confidenceLabel(c: Confidence): string {
@@ -20,7 +24,15 @@ function confidenceLabel(c: Confidence): string {
   return c.confidence;
 }
 
-export function DetailPanel({ graph, block, onGoToBlock, onClose, diffDetail }: DetailPanelProps) {
+export function DetailPanel({
+  graph,
+  block,
+  onGoToBlock,
+  onClose,
+  diffDetail,
+  contentExpanded,
+  onToggleContent,
+}: DetailPanelProps) {
   const relations = graph.relations.filter((r) => r.from === block.key || r.to === block.key);
   const outgoing = relations.filter((r) => r.from === block.key);
   const incoming = relations.filter((r) => r.to === block.key && r.from !== block.key);
@@ -92,6 +104,30 @@ export function DetailPanel({ graph, block, onGoToBlock, onClose, diffDetail }: 
                 </li>
               )}
             </ul>
+          </section>
+        )}
+
+        {block.body && block.body.children.length > 0 && (
+          <section>
+            <button className="disclosure-toggle" onClick={onToggleContent}>
+              <span className={`disclosure-chevron ${contentExpanded ? 'open' : ''}`}>▸</span>
+              <h4 className="disclosure-title">Contenu ({block.body.children.length})</h4>
+            </button>
+            {contentExpanded && (
+              <ul className="port-list">
+                {block.body.children.map((childKey) => {
+                  const child = graph.blocks[childKey];
+                  return (
+                    <li key={childKey}>
+                      <button className="relation-link" onClick={() => onGoToBlock(childKey)}>
+                        <span className="block-search-result-kind">{child?.kind ?? '?'}</span>
+                        <span className="mono">{child?.name ?? childKey.split('/').pop()}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         )}
 
