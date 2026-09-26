@@ -13,9 +13,9 @@
 // mousedown handler covers focus having drifted back to Monaco since.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ReactFlow, Background, Controls, type Edge } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MarkerType, type Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { oneLevel, parentKey, resolveDefinition, type BlockGraph } from '../../lib/graph';
+import { oneLevel, parentKey, resolveDefinition, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
 import { modifiedDetail, statusFor, type GraphDiff } from '../../lib/graph-diff';
 import { isTypingTarget } from '../../lib/dom';
 import { useElkLayout } from './useElkLayout';
@@ -23,6 +23,8 @@ import { nearestInDirection, type Direction } from './spatial-nav';
 import { BlockNode, type BlockNodeType } from './BlockNode';
 import { DetailPanel } from './DetailPanel';
 import { BlockSearch } from './BlockSearch';
+import { RelationLegend } from './RelationLegend';
+import { RELATION_COLOR, RELATION_MARKER_COLOR } from './relation-style';
 
 const ARROW_DIRECTIONS: Record<string, Direction> = {
   ArrowLeft: 'left',
@@ -57,7 +59,20 @@ function breadcrumbFor(focus: string, root: string): string[] {
 
 export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, diff }: GraphViewProps) {
   const view = useMemo(() => oneLevel(graph, focus), [graph, focus]);
-  const { layout } = useElkLayout(view);
+  // Relation-edge visibility (spec §11 "Relations comme arêtes"): a session-local preference, not
+  // part of the shared `view`/`focus` URL state — same reasoning as the Diff tab's baseline.
+  // All off by default so the canvas's default look doesn't change.
+  const [activeRelationKinds, setActiveRelationKinds] = useState<Set<RelationEdgeCategory>>(() => new Set());
+  const { layout } = useElkLayout(view, activeRelationKinds);
+
+  function toggleRelationKind(category: RelationEdgeCategory) {
+    setActiveRelationKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }
 
   const breadcrumb = useMemo(() => breadcrumbFor(focus, graph.root), [focus, graph.root]);
 
@@ -161,14 +176,32 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
 
   const edges: Edge[] = useMemo(() => {
     if (!layout) return [];
-    return layout.edges.map((e) => ({
-      id: e.id,
-      source: e.sourceKey,
-      sourceHandle: e.sourcePort,
-      target: e.targetKey,
-      targetHandle: e.targetPort,
-      type: 'smoothstep',
-    }));
+    return layout.edges.map((e) => {
+      if (e.category) {
+        return {
+          id: e.id,
+          source: e.sourceKey,
+          sourceHandle: '__rel-out',
+          target: e.targetKey,
+          targetHandle: '__rel-in',
+          type: 'smoothstep',
+          style: {
+            stroke: RELATION_COLOR[e.category],
+            strokeWidth: 1.5,
+            strokeDasharray: e.category === 'capture' ? '4 3' : undefined,
+          },
+          markerEnd: { type: MarkerType.ArrowClosed, color: RELATION_MARKER_COLOR[e.category], width: 14, height: 14 },
+        };
+      }
+      return {
+        id: e.id,
+        source: e.sourceKey,
+        sourceHandle: e.sourcePort ?? undefined,
+        target: e.targetKey,
+        targetHandle: e.targetPort ?? undefined,
+        type: 'smoothstep',
+      };
+    });
   }, [layout]);
 
   const selectedBlock = selectedKey ? graph.blocks[selectedKey] : null;
@@ -236,6 +269,8 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
             <Background />
             <Controls showInteractive={false} />
           </ReactFlow>
+
+          <RelationLegend active={activeRelationKinds} onToggle={toggleRelationKind} />
 
           {searchOpen && (
             <BlockSearch

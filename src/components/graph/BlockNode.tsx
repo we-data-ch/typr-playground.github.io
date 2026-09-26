@@ -109,6 +109,16 @@ export function BlockNode({ data, selected }: NodeProps<BlockNodeType>) {
           style={{ top: portOffsetY(i) }}
         />
       ))}
+
+      {/*
+        Anchor points for relation edges (spec §11 "Relations comme arêtes" — capture `Ref`,
+        `HasType`, `TypePosition{0}`). Relations aren't ports of the model (§3.2), so they can't
+        reuse a data-port Handle above, which may not even exist on the relevant side (e.g. a
+        `TypeDecl` has no inputs at all). One dedicated pair at the top of the node instead,
+        invisible like the shadow handles: the edge's own color and arrowhead carry the meaning.
+      */}
+      <Handle type="target" position={Position.Top} id="__rel-in" className="handle-relation" />
+      <Handle type="source" position={Position.Top} id="__rel-out" className="handle-relation" />
     </div>
   );
 }

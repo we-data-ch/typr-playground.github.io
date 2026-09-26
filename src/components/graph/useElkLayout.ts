@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 // The bundled build runs layout synchronously in the main thread — no Worker, which Vite's
 // dev/build pipeline would otherwise need special handling for.
 import ELK, { type ElkNode } from 'elkjs/lib/elk.bundled.js';
-import type { Block, BlockGraph } from '../../lib/graph';
+import { relationEdgesInView, type Block, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
 import { NODE_WIDTH, nodeHeight, portOffsetY } from './layout-constants';
 
 const elk = new ELK();
@@ -25,9 +25,12 @@ export interface LaidOutNode {
 export interface LaidOutEdge {
   id: string;
   sourceKey: string;
-  sourcePort: string;
+  /** `null` for a relation edge (spec §11): it connects to the block itself, not a data port. */
+  sourcePort: string | null;
   targetKey: string;
-  targetPort: string;
+  targetPort: string | null;
+  /** Set only for a relation edge; absent for a wire. */
+  category?: RelationEdgeCategory;
 }
 
 export interface GraphLayout {
@@ -55,14 +58,19 @@ function portSide(block: Block | undefined, portName: string): 'in' | 'out' | nu
   return null;
 }
 
-export function useElkLayout(view: BlockGraph | null): { layout: GraphLayout | null; loading: boolean } {
+export function useElkLayout(
+  view: BlockGraph | null,
+  activeRelationKinds: ReadonlySet<RelationEdgeCategory> = new Set(),
+): { layout: GraphLayout | null; loading: boolean } {
   const [layout, setLayout] = useState<GraphLayout | null>(null);
   const [loading, setLoading] = useState(false);
 
   // A one-level view's *shape* (which blocks it contains) is all the layout depends on; the
   // block contents at a given key are stable, so this key is enough to decide whether to
-  // recompute.
-  const viewKey = view ? `${view.root}:${Object.keys(view.blocks).sort().join(',')}` : null;
+  // recompute — plus which relation categories are active (spec §11), since toggling one changes
+  // which edges ELK sees and must re-arrange the nodes around.
+  const categoriesKey = [...activeRelationKinds].sort().join(',');
+  const viewKey = view ? `${view.root}:${Object.keys(view.blocks).sort().join(',')}:${categoriesKey}` : null;
 
   useEffect(() => {
     if (!view) {
@@ -121,11 +129,17 @@ export function useElkLayout(view: BlockGraph | null): { layout: GraphLayout | n
         return fromSide !== null && toSide !== null;
       });
 
-    const edges = wires.map((w, i) => ({
+    const wireEdges = wires.map((w, i) => ({
       id: `w${i}`,
       sources: [portId(w.from.block, w.from.port, portSide(byKey.get(w.from.block), w.from.port)!)],
       targets: [portId(w.to.block, w.to.port, portSide(byKey.get(w.to.block), w.to.port)!)],
     }));
+
+    // Relation edges (spec §11) connect block to block, not port to port — their target is often
+    // a block with no data port on that side at all (e.g. a `TypeDecl` has no inputs). ELK accepts
+    // a plain node id as an edge endpoint alongside FIXED_POS-port edges in the same layout call.
+    const relationEdges = relationEdgesInView(view).filter((e) => activeRelationKinds.has(e.category));
+    const relationElkEdges = relationEdges.map((e) => ({ id: e.id, sources: [e.from], targets: [e.to] }));
 
     elk
       .layout({
@@ -137,7 +151,7 @@ export function useElkLayout(view: BlockGraph | null): { layout: GraphLayout | n
           'elk.layered.spacing.nodeNodeBetweenLayers': '64',
         },
         children,
-        edges,
+        edges: [...wireEdges, ...relationElkEdges],
       } as ElkNode)
       .then((result) => {
         if (cancelled) return;
@@ -148,13 +162,23 @@ export function useElkLayout(view: BlockGraph | null): { layout: GraphLayout | n
           width: c.width ?? NODE_WIDTH,
           height: c.height ?? 0,
         }));
-        const laidOutEdges: LaidOutEdge[] = wires.map((w, i) => ({
-          id: `w${i}`,
-          sourceKey: w.from.block,
-          sourcePort: w.from.port,
-          targetKey: w.to.block,
-          targetPort: w.to.port,
-        }));
+        const laidOutEdges: LaidOutEdge[] = [
+          ...wires.map((w, i) => ({
+            id: `w${i}`,
+            sourceKey: w.from.block,
+            sourcePort: w.from.port as string | null,
+            targetKey: w.to.block,
+            targetPort: w.to.port as string | null,
+          })),
+          ...relationEdges.map((e) => ({
+            id: e.id,
+            sourceKey: e.from,
+            sourcePort: null,
+            targetKey: e.to,
+            targetPort: null,
+            category: e.category,
+          })),
+        ];
         const width = nodes.reduce((m, n) => Math.max(m, n.x + n.width), 0);
         const height = nodes.reduce((m, n) => Math.max(m, n.y + n.height), 0);
         setLayout({ nodes, edges: laidOutEdges, width, height });

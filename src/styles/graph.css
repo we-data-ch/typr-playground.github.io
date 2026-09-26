@@ -159,6 +159,45 @@
   pointer-events: none;
 }
 
+/* Anchor points for relation edges (spec §11 "Relations comme arêtes") — not real ports, so kept
+   invisible; the edge's own color and arrowhead carry the meaning, not a dot on the node. */
+.react-flow__handle.handle-relation {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Relation legend (spec §11) */
+.relation-legend {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.625rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  font-size: 0.75rem;
+}
+
+.relation-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.relation-legend-swatch {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 /* Detail panel */
 .detail-panel {
   width: 280px;
