@@ -108,7 +108,7 @@ export interface BlockGraph {
 }
 
 /** The relation kinds the Graph tab can draw as a colored, directed edge (spec §11
- *  "Relations comme arêtes"). Every other relation (`Instantiates`, a `TypePosition` with
+ *  "Relations comme arêtes"). Every other relation (a `TypePosition` with
  *  `index != 0`, a plain non-capture `Ref`) stays text-only in the detail panel. */
 export type RelationEdgeCategory =
   | 'capture'
@@ -116,7 +116,8 @@ export type RelationEdgeCategory =
   | 'hasType'
   | 'satisfies'
   | 'declaredAs'
-  | 'subtype';
+  | 'subtype'
+  | 'instantiates';
 
 export interface RelationEdge {
   id: string;
@@ -139,6 +140,7 @@ export function relationCategory(view: BlockGraph, relation: Relation): Relation
   if (relation.kind === 'Satisfies') return 'satisfies';
   if (relation.kind === 'DeclaredAs') return 'declaredAs';
   if (relation.kind === 'Subtype') return 'subtype';
+  if (relation.kind === 'Instantiates') return 'instantiates';
   if (relation.kind === 'TypePosition') return relation.index === 0 ? 'typePosition0' : null;
   if (relation.kind === 'Ref' && relation.port) {
     const port = view.blocks[relation.from]?.inputs.find((p) => p.name === relation.port);
@@ -159,6 +161,47 @@ export function relationEdgesInView(view: BlockGraph): RelationEdge[] {
     const category = relationCategory(view, r);
     return category ? [{ id: `rel${i}`, category, from: r.from, to: r.to }] : [];
   });
+}
+
+/**
+ * The named types a block is tied to through `HasType` — written *or inferred*, and nested
+ * (`fn(v: Point) -> Point` ties to `Point`, not only a block whose type is exactly `Point`).
+ * Maps the name as it appears in `block.type` to the `TypeDecl`/`Interface` key it points at.
+ * Reads the full graph: the target is a top-level block, usually outside a one-level view.
+ */
+export function typeLinks(graph: BlockGraph, blockKey: string): Record<string, string> {
+  const links: Record<string, string> = {};
+  for (const r of graph.relations) {
+    if (r.kind !== 'HasType' || r.from !== blockKey) continue;
+    const name = r.to.replace(/^type:/, '');
+    links[name] = r.to;
+  }
+  return links;
+}
+
+export interface TypeSegment {
+  text: string;
+  /** Key of the type block this piece names, when it is one of the linked types. */
+  key?: string;
+}
+
+/** Splits a printed type into plain text and linked type names, in order, so a renderer can
+ *  highlight the names without re-parsing the type. A name followed by `:` is a field or
+ *  parameter (`Point: int`), not a type reference, and is left plain. */
+export function splitType(type: string, links: Record<string, string>): TypeSegment[] {
+  const names = Object.keys(links).sort((a, b) => b.length - a.length);
+  if (names.length === 0) return [{ text: type }];
+  const escaped = names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const re = new RegExp(`(?<![\\w.])(${escaped.join('|')})(?![\\w.])(?!\\s*:)`, 'g');
+  const out: TypeSegment[] = [];
+  let last = 0;
+  for (const m of type.matchAll(re)) {
+    if (m.index > last) out.push({ text: type.slice(last, m.index) });
+    out.push({ text: m[1], key: links[m[1]] });
+    last = m.index + m[1].length;
+  }
+  if (last < type.length) out.push({ text: type.slice(last) });
+  return out;
 }
 
 /**

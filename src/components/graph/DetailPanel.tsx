@@ -3,8 +3,9 @@
 // block's most informative relations (a `Ref` to a sibling top-level function, a `Satisfies` to
 // an interface) usually cross level boundaries by design (spec §3.3's frontier rule).
 
-import type { Block, BlockGraph, Confidence, Relation } from '../../lib/graph';
+import { typeLinks as typeLinksOf, type Block, type BlockGraph, type Confidence, type Relation } from '../../lib/graph';
 import type { BlockDiff } from '../../lib/graph-diff';
+import { TypeText } from './TypeText';
 
 interface DetailPanelProps {
   graph: BlockGraph;
@@ -35,6 +36,7 @@ export function DetailPanel({
 }: DetailPanelProps) {
   const relations = graph.relations.filter((r) => r.from === block.key || r.to === block.key);
   const outgoing = relations.filter((r) => r.from === block.key);
+  const links = typeLinksOf(graph, block.key);
   const incoming = relations.filter((r) => r.to === block.key && r.from !== block.key);
 
   return (
@@ -55,7 +57,9 @@ export function DetailPanel({
           {block.type && (
             <>
               <dt>Type</dt>
-              <dd className="mono">{block.type}</dd>
+              <dd className="mono">
+                <TypeText type={block.type} links={links} onGoToBlock={onGoToBlock} />
+              </dd>
             </>
           )}
           <dt>Origin</dt>
@@ -138,7 +142,11 @@ export function DetailPanel({
               {block.inputs.map((p) => (
                 <li key={p.name}>
                   <span className="mono">{p.name}</span>
-                  {p.type && <span className="port-type mono">: {p.type}</span>}
+                  {p.type && (
+                    <span className="port-type mono">
+                      : <TypeText type={p.type} links={links} onGoToBlock={onGoToBlock} />
+                    </span>
+                  )}
                   {p.implicit && <span className="port-flag">implicit</span>}
                 </li>
               ))}
@@ -153,7 +161,11 @@ export function DetailPanel({
               {block.outputs.map((p) => (
                 <li key={p.name}>
                   <span className="mono">{p.name}</span>
-                  {p.type && <span className="port-type mono">: {p.type}</span>}
+                  {p.type && (
+                    <span className="port-type mono">
+                      : <TypeText type={p.type} links={links} onGoToBlock={onGoToBlock} />
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

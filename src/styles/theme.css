@@ -29,6 +29,7 @@
   --edge-satisfies: #10b981;
   --edge-declared-as: #f59e0b;
   --edge-subtype: #ef4444;
+  --edge-instantiates: #14b8a6;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
@@ -62,6 +63,7 @@
   --edge-satisfies: #34d399;
   --edge-declared-as: #fbbf24;
   --edge-subtype: #f87171;
+  --edge-instantiates: #2dd4bf;
 }
 
 /* Global styles */

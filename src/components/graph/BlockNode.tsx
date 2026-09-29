@@ -1,6 +1,7 @@
 import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import type { Block } from '../../lib/graph';
 import type { DiffStatus } from '../../lib/graph-diff';
+import { TypeText } from './TypeText';
 import { NODE_WIDTH, nodeHeight, portOffsetY } from './layout-constants';
 
 export interface BlockNodeData {
@@ -10,6 +11,8 @@ export interface BlockNodeData {
    *  Only ever `'added'`/`'modified'` in practice: a `'removed'` key has no node to attach to
    *  (it doesn't exist in the graph being rendered), so it's reported separately (`DiffSummary`). */
   diffStatus?: DiffStatus;
+  /** Named types this block's type is tied to (`HasType`), name → key — highlighted in the type line. */
+  typeLinks?: Record<string, string>;
   [key: string]: unknown;
 }
 
@@ -40,7 +43,7 @@ function kindGroup(kind: Block['kind']): string {
 }
 
 export function BlockNode({ data, selected }: NodeProps<BlockNodeType>) {
-  const { block, diffStatus } = data;
+  const { block, diffStatus, typeLinks = {} } = data;
   const title = block.name ?? block.key.split('/').pop() ?? block.key;
   const diffClass = diffStatus ? ` diff-${diffStatus}` : '';
 
@@ -55,7 +58,11 @@ export function BlockNode({ data, selected }: NodeProps<BlockNodeType>) {
         <span className="block-node-kind">{block.kind}</span>
         <span className="block-node-name">{title}</span>
       </div>
-      {block.type && <div className="block-node-type">{block.type}</div>}
+      {block.type && (
+        <div className="block-node-type" title={block.type}>
+          <TypeText type={block.type} links={typeLinks} />
+        </div>
+      )}
 
       {/*
         Two Handles per port, stacked at the same spot: a declared input is usually a wire

@@ -12,10 +12,10 @@
 // user has clicked into the graph. Autofocusing on mount covers arriving at the tab; the
 // mousedown handler covers focus having drifted back to Monaco since.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ReactFlow, Background, Controls, MarkerType, type Edge } from '@xyflow/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactFlow, Background, Controls, MarkerType, type Edge, type NodeChange } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { oneLevel, parentKey, resolveDefinition, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
+import { oneLevel, parentKey, resolveDefinition, typeLinks, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
 import { modifiedDetail, statusFor, type GraphDiff } from '../../lib/graph-diff';
 import { isTypingTarget } from '../../lib/dom';
 import { useElkLayout } from './useElkLayout';
@@ -74,6 +74,25 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
     });
   }
 
+  // Positions the user dragged nodes to, layered over ELK's. Dropped whenever ELK produces a new
+  // layout (focus change, relation toggled, source edited) so a fresh arrangement isn't fought by
+  // stale offsets — same "adjust state during render" pattern as `lastSelectedKey` below.
+  const [dragged, setDragged] = useState<Record<string, { x: number; y: number }>>({});
+  const [lastLayout, setLastLayout] = useState(layout);
+  if (layout !== lastLayout) {
+    setLastLayout(layout);
+    setDragged({});
+  }
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    for (const c of changes) {
+      if (c.type === 'position' && c.position) {
+        const { id, position } = c;
+        setDragged((prev) => ({ ...prev, [id]: position }));
+      }
+    }
+  }, []);
+
   const breadcrumb = useMemo(() => breadcrumbFor(focus, graph.root), [focus, graph.root]);
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -92,6 +111,11 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
     setLastSelectedKey(selectedKey);
     setContentExpanded(false);
   }
+
+  const positionedNodes = useMemo(
+    () => (layout?.nodes ?? []).map((n) => ({ ...n, ...dragged[n.key] })),
+    [layout, dragged],
+  );
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -144,7 +168,7 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
           onEnter(target);
         }
       } else if (e.key in ARROW_DIRECTIONS && layout) {
-        const next = nearestInDirection(layout.nodes, selectedKey, ARROW_DIRECTIONS[e.key]);
+        const next = nearestInDirection(positionedNodes, selectedKey, ARROW_DIRECTIONS[e.key]);
         if (next) {
           e.preventDefault();
           onSelectKey(next);
@@ -154,11 +178,11 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [focus, selectedKey, view, layout, graph, onEnter, onSelectKey]);
+  }, [focus, selectedKey, view, layout, positionedNodes, graph, onEnter, onSelectKey]);
 
   const nodes: BlockNodeType[] = useMemo(() => {
-    if (!view || !layout) return [];
-    return layout.nodes.flatMap((n) => {
+    if (!view) return [];
+    return positionedNodes.flatMap((n) => {
       const block = view.blocks[n.key];
       if (!block) return [];
       return [
@@ -166,13 +190,16 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
           id: n.key,
           type: 'block' as const,
           position: { x: n.x, y: n.y },
-          data: { block, diffStatus: diff ? (statusFor(diff, n.key) ?? undefined) : undefined },
+          data: {
+            block,
+            diffStatus: diff ? (statusFor(diff, n.key) ?? undefined) : undefined,
+            typeLinks: typeLinks(graph, n.key),
+          },
           selected: n.key === selectedKey,
-          draggable: false,
         },
       ];
     });
-  }, [view, layout, selectedKey, diff]);
+  }, [view, graph, positionedNodes, selectedKey, diff]);
 
   const edges: Edge[] = useMemo(() => {
     if (!layout) return [];
@@ -188,7 +215,7 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
           style: {
             stroke: RELATION_COLOR[e.category],
             strokeWidth: 1.5,
-            strokeDasharray: e.category === 'capture' ? '4 3' : e.category === 'subtype' ? '2 3' : undefined,
+            strokeDasharray: e.category === 'capture' ? '4 3' : e.category === 'subtype' ? '2 3' : e.category === 'instantiates' ? '8 3 2 3' : undefined,
           },
           markerEnd: { type: MarkerType.ArrowClosed, color: RELATION_MARKER_COLOR[e.category], width: 14, height: 14 },
         };
@@ -243,13 +270,11 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
-            nodesDraggable={false}
+            nodesDraggable
+            onNodesChange={onNodesChange}
             nodesConnectable={false}
             elementsSelectable
-            // React Flow's default "double-click pane to zoom" would otherwise swallow a
-            // double-click on a node before it reaches onNodeDoubleClick below: nodes only carry
-            // the `nopan` class (which protects them from that built-in handler) when
-            // nodesDraggable is true, which it isn't here — ELK, not the user, controls layout.
+            // Disabled so a double-click on the pane can't zoom; onNodeDoubleClick below enters a block.
             zoomOnDoubleClick={false}
             fitView
             onNodeClick={(event, node) => {

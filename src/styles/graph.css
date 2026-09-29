@@ -505,3 +505,21 @@
 .graph-highlight-inline {
   border-bottom: 1px solid var(--accent-primary);
 }
+
+/* The named type a block is tied to through HasType (declared or inferred), highlighted inside
+   its printed type. Same hue as the HasType edge so text and edge read as one thing. */
+.type-link {
+  background: color-mix(in srgb, var(--edge-has-type) 22%, transparent);
+  color: var(--text-primary);
+  border-radius: 3px;
+  padding: 0 0.125rem;
+  font-weight: 600;
+}
+
+.type-link-button {
+  cursor: pointer;
+}
+
+.type-link-button:hover {
+  background: color-mix(in srgb, var(--edge-has-type) 40%, transparent);
+}

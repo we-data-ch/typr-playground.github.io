@@ -11,6 +11,7 @@ export const RELATION_CATEGORIES: RelationEdgeCategory[] = [
   'satisfies',
   'declaredAs',
   'subtype',
+  'instantiates',
 ];
 
 export const RELATION_LABEL: Record<RelationEdgeCategory, string> = {
@@ -20,6 +21,7 @@ export const RELATION_LABEL: Record<RelationEdgeCategory, string> = {
   satisfies: 'Satisfait une interface',
   declaredAs: 'Déclaré comme',
   subtype: 'Sous-type de',
+  instantiates: 'Instancie un générique',
 };
 
 /** Themed (light/dark, see `theme.css`) — used for the edge's own stroke and the legend swatch. */
@@ -30,6 +32,7 @@ export const RELATION_COLOR: Record<RelationEdgeCategory, string> = {
   satisfies: 'var(--edge-satisfies)',
   declaredAs: 'var(--edge-declared-as)',
   subtype: 'var(--edge-subtype)',
+  instantiates: 'var(--edge-instantiates)',
 };
 
 /**
@@ -45,4 +48,5 @@ export const RELATION_MARKER_COLOR: Record<RelationEdgeCategory, string> = {
   satisfies: '#10b981',
   declaredAs: '#f59e0b',
   subtype: '#ef4444',
+  instantiates: '#14b8a6',
 };
