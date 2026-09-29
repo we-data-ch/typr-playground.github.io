@@ -188,7 +188,7 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
           style: {
             stroke: RELATION_COLOR[e.category],
             strokeWidth: 1.5,
-            strokeDasharray: e.category === 'capture' ? '4 3' : undefined,
+            strokeDasharray: e.category === 'capture' ? '4 3' : e.category === 'subtype' ? '2 3' : undefined,
           },
           markerEnd: { type: MarkerType.ArrowClosed, color: RELATION_MARKER_COLOR[e.category], width: 14, height: 14 },
         };

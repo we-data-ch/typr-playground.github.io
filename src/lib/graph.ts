@@ -107,11 +107,16 @@ export interface BlockGraph {
   relations: Relation[];
 }
 
-/** The three relation kinds the Graph tab can draw as a colored, directed edge (spec §11
- *  "Relations comme arêtes"). Every other relation (`Satisfies`, `DeclaredAs`, `Subtype`,
- *  `Instantiates`, a `TypePosition` with `index != 0`, a plain non-capture `Ref`) stays
- *  text-only in the detail panel. */
-export type RelationEdgeCategory = 'capture' | 'typePosition0' | 'hasType';
+/** The relation kinds the Graph tab can draw as a colored, directed edge (spec §11
+ *  "Relations comme arêtes"). Every other relation (`Instantiates`, a `TypePosition` with
+ *  `index != 0`, a plain non-capture `Ref`) stays text-only in the detail panel. */
+export type RelationEdgeCategory =
+  | 'capture'
+  | 'typePosition0'
+  | 'hasType'
+  | 'satisfies'
+  | 'declaredAs'
+  | 'subtype';
 
 export interface RelationEdge {
   id: string;
@@ -121,7 +126,7 @@ export interface RelationEdge {
 }
 
 /**
- * Classifies a relation into one of the three colored categories, or `null` if it isn't one.
+ * Classifies a relation into one of the colored categories, or `null` if it isn't one.
  *
  * A `Ref` is a *capture* iff its origin port is one the builder allocated as implicit
  * (`take_captures` in `crates/typr-graph/src/build/mod.rs` always pairs `Port::implicit(name, …)`
@@ -131,6 +136,9 @@ export interface RelationEdge {
  */
 export function relationCategory(view: BlockGraph, relation: Relation): RelationEdgeCategory | null {
   if (relation.kind === 'HasType') return 'hasType';
+  if (relation.kind === 'Satisfies') return 'satisfies';
+  if (relation.kind === 'DeclaredAs') return 'declaredAs';
+  if (relation.kind === 'Subtype') return 'subtype';
   if (relation.kind === 'TypePosition') return relation.index === 0 ? 'typePosition0' : null;
   if (relation.kind === 'Ref' && relation.port) {
     const port = view.blocks[relation.from]?.inputs.find((p) => p.name === relation.port);
@@ -141,7 +149,7 @@ export function relationCategory(view: BlockGraph, relation: Relation): Relation
 
 /**
  * The relations of a one-level view (`oneLevel`) that can be drawn as edges: classified into one
- * of the three colored categories, with both endpoints present as nodes in `view` — a relation
+ * of the colored categories, with both endpoints present as nodes in `view` — a relation
  * reaching past this level's boundary has nowhere to attach (same rule `useElkLayout` already
  * applies to wires) and is dropped here rather than rendered dangling.
  */
