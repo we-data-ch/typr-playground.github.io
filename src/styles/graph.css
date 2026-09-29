@@ -180,7 +180,8 @@
   pointer-events: none;
 }
 
-/* Relation legend (spec §11) */
+/* Relation legend (spec §11) — collapsible: on a narrow canvas the open list would cover a
+   large share of the graph, so only the header is drawn until it's tapped (see RelationLegend.tsx). */
 .relation-legend {
   position: absolute;
   top: 0.75rem;
@@ -188,13 +189,37 @@
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.5rem 0.625rem;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
   font-size: 0.75rem;
+  max-width: calc(100% - 1.5rem);
+}
+
+.relation-legend-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.125rem;
+  white-space: nowrap;
+}
+
+.relation-legend-toggle:hover {
+  color: var(--text-primary);
+}
+
+.relation-legend-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .relation-legend-row {

@@ -13,7 +13,7 @@
 // mousedown handler covers focus having drifted back to Monaco since.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ReactFlow, Background, Controls, MarkerType, type Edge, type NodeChange } from '@xyflow/react';
+import { ReactFlow, Background, MarkerType, type Edge, type NodeChange } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { calleeName, oneLevel, parentKey, resolveDefinition, typeLinks, variableName, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
 import { modifiedDetail, statusFor, type GraphDiff } from '../../lib/graph-diff';
@@ -305,7 +305,6 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
             onPaneClick={() => onSelectKey(null)}
           >
             <Background />
-            <Controls showInteractive={false} />
           </ReactFlow>
 
           <RelationLegend active={activeRelationKinds} onToggle={toggleRelationKind} />
