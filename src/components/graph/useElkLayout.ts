@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 // The bundled build runs layout synchronously in the main thread — no Worker, which Vite's
 // dev/build pipeline would otherwise need special handling for.
 import ELK, { type ElkNode } from 'elkjs/lib/elk.bundled.js';
-import { relationEdgesInView, type Block, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
+import { liftToView, relationEdgesInView, type Block, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
 import { NODE_WIDTH, nodeHeight, portOffsetY } from './layout-constants';
 
 const elk = new ELK();
@@ -20,6 +20,8 @@ export interface LaidOutNode {
   y: number;
   width: number;
   height: number;
+  /** A block defined outside the view's frontier, shown only as the target of a relation edge. */
+  external?: boolean;
 }
 
 export interface LaidOutEdge {
@@ -58,7 +60,14 @@ function portSide(block: Block | undefined, portName: string): 'in' | 'out' | nu
   return null;
 }
 
+/** A block of the full graph reduced to a stub for use as an external node: its outputs stay
+ *  (a wire from outside the frontier attaches to one), its inputs and body go. */
+export function externalStub(block: Block): Block {
+  return { ...block, inputs: [], body: undefined };
+}
+
 export function useElkLayout(
+  graph: BlockGraph,
   view: BlockGraph | null,
   activeRelationKinds: ReadonlySet<RelationEdgeCategory> = new Set(),
 ): { layout: GraphLayout | null; loading: boolean } {
@@ -70,7 +79,7 @@ export function useElkLayout(
   // recompute — plus which relation categories are active (spec §11), since toggling one changes
   // which edges ELK sees and must re-arrange the nodes around.
   const categoriesKey = [...activeRelationKinds].sort().join(',');
-  const viewKey = view ? `${view.root}:${Object.keys(view.blocks).sort().join(',')}:${categoriesKey}` : null;
+  const viewKey = view ? `${view.root}:${Object.keys(view.blocks).sort().join(',')}:${categoriesKey}:${graph.relations.length}` : null;
 
   useEffect(() => {
     if (!view) {
@@ -81,7 +90,34 @@ export function useElkLayout(
     let cancelled = false;
     setLoading(true);
 
-    const blocks = Object.values(view.blocks);
+    // Relation edges first: their targets outside the frontier become extra (external) nodes.
+    const { edges: relationEdges, externals } = relationEdgesInView(graph, view, activeRelationKinds);
+
+    // A wire kept in a view block's body can start outside the frontier — `nombre + 7` entered
+    // on the `+`: `nombre.out → lhs`, with `nombre` a sibling of the focus, not part of its view.
+    // Its source becomes an external node too (same rule as a relation target) rather than
+    // dropping the input's only visible origin.
+    const inView = new Set(Object.keys(view.blocks));
+    const wireEndsOutside = (end: { block: string; port: string }) =>
+      !inView.has(end.block) && liftToView(view, end.block) === null && !!graph.blocks[end.block];
+    const outsideWireBlocks = new Set<string>();
+    for (const b of Object.values(view.blocks)) {
+      for (const w of b.body?.wires ?? []) {
+        if (wireEndsOutside(w.from) && portSide(graph.blocks[w.from.block], w.from.port) === 'out') {
+          outsideWireBlocks.add(w.from.block);
+        }
+      }
+    }
+    const allExternals = [...new Set([...externals, ...outsideWireBlocks])];
+    const externalKeys = new Set(allExternals);
+    const allBlocks = [
+      ...Object.values(view.blocks),
+      ...allExternals.flatMap((k) => (graph.blocks[k] ? [externalStub(graph.blocks[k])] : [])),
+    ];
+    // `Program` blocks are never drawn: the root is just the container of the top-level
+    // declarations, so a node for it carries no information. Their bodies (and wires) are still
+    // read below; edges ending on a hidden block are dropped since `byKey` no longer has it.
+    const blocks = allBlocks.filter((b) => b.kind !== 'Program');
     const byKey = new Map(blocks.map((b) => [b.key, b]));
 
     const children = blocks.map((block) => ({
@@ -121,7 +157,7 @@ export function useElkLayout(
     // routinely the *source* of a wire inside its body (e.g. `sq`'s parameter `n` feeding
     // `n * n`), and the reverse happens for its own output. Getting this backwards makes ELK
     // reject the edge outright ("Referenced shape does not exist").
-    const wires = blocks
+    const wires = allBlocks
       .flatMap((b) => b.body?.wires ?? [])
       .filter((w) => {
         const fromSide = portSide(byKey.get(w.from.block), w.from.port);
@@ -138,8 +174,8 @@ export function useElkLayout(
     // Relation edges (spec §11) connect block to block, not port to port — their target is often
     // a block with no data port on that side at all (e.g. a `TypeDecl` has no inputs). ELK accepts
     // a plain node id as an edge endpoint alongside FIXED_POS-port edges in the same layout call.
-    const relationEdges = relationEdgesInView(view).filter((e) => activeRelationKinds.has(e.category));
-    const relationElkEdges = relationEdges.map((e) => ({ id: e.id, sources: [e.from], targets: [e.to] }));
+    const visibleRelationEdges = relationEdges.filter((e) => byKey.has(e.from) && byKey.has(e.to));
+    const relationElkEdges = visibleRelationEdges.map((e) => ({ id: e.id, sources: [e.from], targets: [e.to] }));
 
     elk
       .layout({
@@ -147,8 +183,10 @@ export function useElkLayout(
         layoutOptions: {
           'elk.algorithm': 'layered',
           'elk.direction': 'RIGHT',
-          'elk.spacing.nodeNode': '32',
-          'elk.layered.spacing.nodeNodeBetweenLayers': '64',
+          'elk.spacing.nodeNode': '96',
+          'elk.layered.spacing.nodeNodeBetweenLayers': '110',
+          'elk.layered.spacing.edgeNodeBetweenLayers': '32',
+          'elk.spacing.edgeNode': '36',
         },
         children,
         edges: [...wireEdges, ...relationElkEdges],
@@ -161,6 +199,7 @@ export function useElkLayout(
           y: c.y ?? 0,
           width: c.width ?? NODE_WIDTH,
           height: c.height ?? 0,
+          external: externalKeys.has(c.id) || undefined,
         }));
         const laidOutEdges: LaidOutEdge[] = [
           ...wires.map((w, i) => ({
@@ -170,7 +209,7 @@ export function useElkLayout(
             targetKey: w.to.block,
             targetPort: w.to.port as string | null,
           })),
-          ...relationEdges.map((e) => ({
+          ...visibleRelationEdges.map((e) => ({
             id: e.id,
             sourceKey: e.from,
             sourcePort: null,

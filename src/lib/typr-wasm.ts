@@ -1,6 +1,6 @@
 // Type definitions for TypR WASM module
 
-import type { BlockGraph } from './graph';
+import { stripCommentTypes, type BlockGraph } from './graph';
 import type { GraphDiff } from './graph-diff';
 
 export interface GraphResult {
@@ -133,7 +133,7 @@ export function semanticGraphTypR(
     if (result.has_errors) {
       return { graph: null, hasErrors: true, errors: result.errors };
     }
-    return { graph: JSON.parse(result.graph_json) as BlockGraph, hasErrors: false, errors: '' };
+    return { graph: stripCommentTypes(JSON.parse(result.graph_json) as BlockGraph), hasErrors: false, errors: '' };
   } catch (e) {
     return { graph: null, hasErrors: true, errors: String(e) };
   }
@@ -158,8 +158,8 @@ export function semanticGraphDiffTypR(
     }
     return {
       diff: JSON.parse(result.diff_json) as GraphDiff,
-      oldGraph: JSON.parse(result.old_graph_json) as BlockGraph,
-      newGraph: JSON.parse(result.new_graph_json) as BlockGraph,
+      oldGraph: stripCommentTypes(JSON.parse(result.old_graph_json) as BlockGraph),
+      newGraph: stripCommentTypes(JSON.parse(result.new_graph_json) as BlockGraph),
       hasErrors: false,
       errors: '',
     };

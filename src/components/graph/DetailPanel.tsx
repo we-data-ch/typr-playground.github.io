@@ -3,7 +3,7 @@
 // block's most informative relations (a `Ref` to a sibling top-level function, a `Satisfies` to
 // an interface) usually cross level boundaries by design (spec §3.3's frontier rule).
 
-import { typeLinks as typeLinksOf, type Block, type BlockGraph, type Confidence, type Relation } from '../../lib/graph';
+import { kindLabel, variableName, typeLinks as typeLinksOf, type Block, type BlockGraph, type Confidence, type Relation } from '../../lib/graph';
 import type { BlockDiff } from '../../lib/graph-diff';
 import { TypeText } from './TypeText';
 
@@ -53,7 +53,13 @@ export function DetailPanel({
           <dt>Key</dt>
           <dd className="mono">{block.key}</dd>
           <dt>Kind</dt>
-          <dd>{block.kind}</dd>
+          <dd>{kindLabel(graph, block)}</dd>
+          {variableName(graph, block) && (
+            <>
+              <dt>Variable</dt>
+              <dd className="mono">{variableName(graph, block)}</dd>
+            </>
+          )}
           {block.type && (
             <>
               <dt>Type</dt>

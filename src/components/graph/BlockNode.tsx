@@ -6,6 +6,8 @@ import { NODE_WIDTH, nodeHeight, portOffsetY } from './layout-constants';
 
 export interface BlockNodeData {
   block: Block;
+  /** Defined outside the view's frontier; drawn as a dashed stub, target of relation edges only. */
+  external?: boolean;
   /** Set only in the Diff view (spec §12 étape 6); `undefined` elsewhere, and for an unchanged
    *  block there too — most nodes, so that stays the common case rather than a three-way enum.
    *  Only ever `'added'`/`'modified'` in practice: a `'removed'` key has no node to attach to
@@ -13,6 +15,10 @@ export interface BlockNodeData {
   diffStatus?: DiffStatus;
   /** Named types this block's type is tied to (`HasType`), name → key — highlighted in the type line. */
   typeLinks?: Record<string, string>;
+  /** Set for a bare-variable expression (`message`): the identifier, shown in the node body. */
+  variable?: string;
+  /** Set for a function application (`APPLY`): the called function, shown as the node's title. */
+  callee?: string;
   [key: string]: unknown;
 }
 
@@ -34,6 +40,8 @@ function kindGroup(kind: Block['kind']): string {
     case 'Loop':
     case 'Match':
       return 'control';
+    case 'Comment':
+      return 'comment';
     case 'Program':
     case 'Module':
       return 'module';
@@ -43,21 +51,27 @@ function kindGroup(kind: Block['kind']): string {
 }
 
 export function BlockNode({ data, selected }: NodeProps<BlockNodeType>) {
-  const { block, diffStatus, typeLinks = {} } = data;
-  const title = block.name ?? block.key.split('/').pop() ?? block.key;
+  const { block, external, diffStatus, typeLinks = {}, variable, callee } = data;
+  const title = block.name ?? callee ?? (variable ? undefined : block.key.split('/').pop() ?? block.key);
   const diffClass = diffStatus ? ` diff-${diffStatus}` : '';
 
   return (
     <div
-      className={`block-node kind-${kindGroup(block.kind)}${diffClass}${selected ? ' selected' : ''}`}
+      className={`block-node kind-${kindGroup(block.kind)}${diffClass}${external ? ' external' : ''}${selected ? ' selected' : ''}`}
       style={{ width: NODE_WIDTH, height: nodeHeight(block) }}
-      title="Clic : sélectionner · Double-clic : entrer · Alt+clic : aller à la définition"
+      title={external ? "Défini hors de ce niveau · Double-clic : y aller" : "Clic : sélectionner · Double-clic : entrer · Alt+clic : aller à la définition"}
     >
       <div className="block-node-header">
         {diffStatus && <span className={`block-node-diff-badge diff-${diffStatus}`}>{diffBadge[diffStatus]}</span>}
-        <span className="block-node-kind">{block.kind}</span>
-        <span className="block-node-name">{title}</span>
+        {external && <span className="block-node-kind" title="Hors frontière">↗</span>}
+        <span className="block-node-kind">{variable ? 'VARIABLE' : block.kind}</span>
+        {title && <span className="block-node-name">{title}</span>}
       </div>
+      {variable && (
+        <div className="block-node-variable" title={variable}>
+          {variable}
+        </div>
+      )}
       {block.type && (
         <div className="block-node-type" title={block.type}>
           <TypeText type={block.type} links={typeLinks} />

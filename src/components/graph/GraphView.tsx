@@ -15,10 +15,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlow, Background, Controls, MarkerType, type Edge, type NodeChange } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { oneLevel, parentKey, resolveDefinition, typeLinks, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
+import { calleeName, oneLevel, parentKey, resolveDefinition, typeLinks, variableName, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
 import { modifiedDetail, statusFor, type GraphDiff } from '../../lib/graph-diff';
 import { isTypingTarget } from '../../lib/dom';
-import { useElkLayout } from './useElkLayout';
+import { useElkLayout, externalStub } from './useElkLayout';
 import { nearestInDirection, type Direction } from './spatial-nav';
 import { BlockNode, type BlockNodeType } from './BlockNode';
 import { DetailPanel } from './DetailPanel';
@@ -61,9 +61,10 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
   const view = useMemo(() => oneLevel(graph, focus), [graph, focus]);
   // Relation-edge visibility (spec §11 "Relations comme arêtes"): a session-local preference, not
   // part of the shared `view`/`focus` URL state — same reasoning as the Diff tab's baseline.
-  // All off by default so the canvas's default look doesn't change.
-  const [activeRelationKinds, setActiveRelationKinds] = useState<Set<RelationEdgeCategory>>(() => new Set());
-  const { layout } = useElkLayout(view, activeRelationKinds);
+  // Plain references are on by default (a bare `message` must visibly link to its `let`); the
+  // rest are off so the canvas stays uncluttered.
+  const [activeRelationKinds, setActiveRelationKinds] = useState<Set<RelationEdgeCategory>>(() => new Set(['ref', 'hasType']));
+  const { layout } = useElkLayout(graph, view, activeRelationKinds);
 
   function toggleRelationKind(category: RelationEdgeCategory) {
     setActiveRelationKinds((prev) => {
@@ -144,7 +145,7 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
         // First press with nothing selected: land on the focus block itself rather than no-op.
         if (e.key in ARROW_DIRECTIONS) {
           e.preventDefault();
-          onSelectKey(focus);
+          if (graph.blocks[focus]?.kind !== 'Program') onSelectKey(focus);
         }
         return;
       }
@@ -183,7 +184,7 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
   const nodes: BlockNodeType[] = useMemo(() => {
     if (!view) return [];
     return positionedNodes.flatMap((n) => {
-      const block = view.blocks[n.key];
+      const block = view.blocks[n.key] ?? (n.external && graph.blocks[n.key] ? externalStub(graph.blocks[n.key]) : undefined);
       if (!block) return [];
       return [
         {
@@ -192,8 +193,11 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
           position: { x: n.x, y: n.y },
           data: {
             block,
+            external: n.external,
             diffStatus: diff ? (statusFor(diff, n.key) ?? undefined) : undefined,
             typeLinks: typeLinks(graph, n.key),
+            variable: variableName(graph, block) ?? undefined,
+            callee: calleeName(graph, block) ?? undefined,
           },
           selected: n.key === selectedKey,
         },
@@ -212,6 +216,8 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
           target: e.targetKey,
           targetHandle: '__rel-in',
           type: 'smoothstep',
+          // Drawn last = on top: "Expression: type" links go behind every other edge.
+          zIndex: e.category === 'hasType' ? 0 : 1,
           style: {
             stroke: RELATION_COLOR[e.category],
             strokeWidth: 1.5,
@@ -227,6 +233,7 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
         target: e.targetKey,
         targetHandle: e.targetPort ?? undefined,
         type: 'smoothstep',
+        zIndex: 1,
       };
     });
   }, [layout]);
@@ -278,6 +285,11 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
             zoomOnDoubleClick={false}
             fitView
             onNodeClick={(event, node) => {
+              if (event.altKey && !view.blocks[node.id]) {
+                onEnter(parentKey(node.id) ?? graph.root);
+                onSelectKey(node.id);
+                return;
+              }
               if (event.altKey) {
                 const target = resolveDefinition(graph, node.id);
                 if (target) onEnter(target);
@@ -288,6 +300,7 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
             onNodeDoubleClick={(_event, node) => {
               const block = view.blocks[node.id];
               if (block?.body) onEnter(node.id);
+              else if (!block && graph.blocks[node.id]) onEnter(parentKey(node.id) ?? graph.root);
             }}
             onPaneClick={() => onSelectKey(null)}
           >

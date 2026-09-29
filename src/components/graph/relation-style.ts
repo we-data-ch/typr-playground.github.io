@@ -5,6 +5,7 @@
 import type { RelationEdgeCategory } from '../../lib/graph';
 
 export const RELATION_CATEGORIES: RelationEdgeCategory[] = [
+  'ref',
   'capture',
   'typePosition0',
   'hasType',
@@ -15,17 +16,19 @@ export const RELATION_CATEGORIES: RelationEdgeCategory[] = [
 ];
 
 export const RELATION_LABEL: Record<RelationEdgeCategory, string> = {
-  capture: 'Capture implicite',
-  typePosition0: '1ᵉʳ paramètre : type',
-  hasType: 'Expression : type',
-  satisfies: 'Satisfait une interface',
-  declaredAs: 'Déclaré comme',
-  subtype: 'Sous-type de',
-  instantiates: 'Instancie un générique',
+  ref: 'Reference to a definition',
+  capture: 'Implicit capture',
+  typePosition0: '1st parameter: type',
+  hasType: 'Expression: type',
+  satisfies: 'Satisfies an interface',
+  declaredAs: 'Declared as',
+  subtype: 'Subtype of',
+  instantiates: 'Instantiates a generic',
 };
 
 /** Themed (light/dark, see `theme.css`) — used for the edge's own stroke and the legend swatch. */
 export const RELATION_COLOR: Record<RelationEdgeCategory, string> = {
+  ref: 'var(--edge-ref)',
   capture: 'var(--edge-capture)',
   typePosition0: 'var(--edge-type-position)',
   hasType: 'var(--edge-has-type)',
@@ -42,6 +45,7 @@ export const RELATION_COLOR: Record<RelationEdgeCategory, string> = {
  * arrowhead doesn't need per-theme variation the way the edge line (`RELATION_COLOR`) does.
  */
 export const RELATION_MARKER_COLOR: Record<RelationEdgeCategory, string> = {
+  ref: '#3b82f6',
   capture: '#8b5cf6',
   typePosition0: '#0ea5e9',
   hasType: '#d946ef',

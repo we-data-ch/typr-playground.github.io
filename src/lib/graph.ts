@@ -24,7 +24,8 @@ export type BlockKind =
   | 'Loop'
   | 'Match'
   | 'Module'
-  | 'RCode';
+  | 'RCode'
+  | 'Comment';
 
 export type Origin = 'User' | 'Std' | { RPackage: string };
 
@@ -111,6 +112,7 @@ export interface BlockGraph {
  *  "Relations comme arêtes"). Every other relation (a `TypePosition` with
  *  `index != 0`, a plain non-capture `Ref`) stays text-only in the detail panel. */
 export type RelationEdgeCategory =
+  | 'ref'
   | 'capture'
   | 'typePosition0'
   | 'hasType'
@@ -133,34 +135,102 @@ export interface RelationEdge {
  * (`take_captures` in `crates/typr-graph/src/build/mod.rs` always pairs `Port::implicit(name, …)`
  * with a `Ref` on that same port name) — checked here via `implicit: true` on the matching port of
  * the `from` block's `inputs`. A `Ref` whose port is explicit (`callee`, `arg0`, a rename's
- * `value`, …) or absent is a plain reference, not a capture.
+ * `value`, …) or absent is a plain reference (`'ref'`), e.g. a bare `message` expression → its `let`. `graph` must be the *full* graph:
+ * `from` is often a descendant that a one-level view doesn't contain.
  */
-export function relationCategory(view: BlockGraph, relation: Relation): RelationEdgeCategory | null {
+export function relationCategory(graph: BlockGraph, relation: Relation): RelationEdgeCategory | null {
   if (relation.kind === 'HasType') return 'hasType';
   if (relation.kind === 'Satisfies') return 'satisfies';
   if (relation.kind === 'DeclaredAs') return 'declaredAs';
   if (relation.kind === 'Subtype') return 'subtype';
   if (relation.kind === 'Instantiates') return 'instantiates';
   if (relation.kind === 'TypePosition') return relation.index === 0 ? 'typePosition0' : null;
-  if (relation.kind === 'Ref' && relation.port) {
-    const port = view.blocks[relation.from]?.inputs.find((p) => p.name === relation.port);
-    if (port?.implicit) return 'capture';
+  if (relation.kind === 'Ref') {
+    const port = relation.port ? graph.blocks[relation.from]?.inputs.find((p) => p.name === relation.port) : undefined;
+    return port?.implicit ? 'capture' : 'ref';
   }
   return null;
 }
 
 /**
- * The relations of a one-level view (`oneLevel`) that can be drawn as edges: classified into one
- * of the colored categories, with both endpoints present as nodes in `view` — a relation
- * reaching past this level's boundary has nowhere to attach (same rule `useElkLayout` already
- * applies to wires) and is dropped here rather than rendered dangling.
+ * The variable a bare-expression block stands for (`message` alone on a line): an `Opaque` block
+ * carrying a `Ref` on its `value` port. The compiler doesn't store the identifier on such a block
+ * (it is unnamed, keyed `val:#n`), so it is read off the referenced definition. `null` for any
+ * other block.
  */
-export function relationEdgesInView(view: BlockGraph): RelationEdge[] {
-  return view.relations.flatMap((r, i) => {
-    if (!view.blocks[r.from] || !view.blocks[r.to]) return [];
-    const category = relationCategory(view, r);
-    return category ? [{ id: `rel${i}`, category, from: r.from, to: r.to }] : [];
-  });
+export function variableName(graph: BlockGraph, block: Block): string | null {
+  if (block.kind !== 'Opaque') return null;
+  const ref = graph.relations.find((r) => r.kind === 'Ref' && r.from === block.key && r.port === 'value');
+  if (!ref) return null;
+  const target = graph.blocks[ref.to];
+  return target?.name ?? ref.to.split('/').pop()?.replace(/^\w+:/, '') ?? null;
+}
+
+/**
+ * The function an `Apply` block calls: the definition its `callee` port references (`Ref`), or,
+ * when the callee is an expression rather than a name, the variable/name of its `callee` child.
+ * `null` for any other block or when nothing resolves.
+ */
+export function calleeName(graph: BlockGraph, block: Block): string | null {
+  if (block.kind !== 'Apply') return null;
+  const ref = graph.relations.find((r) => r.kind === 'Ref' && r.from === block.key && r.port === 'callee');
+  if (ref) {
+    const target = graph.blocks[ref.to];
+    return target?.name ?? ref.to.split('/').pop()?.replace(/^\w+:/, '') ?? null;
+  }
+  const child = graph.blocks[`${block.key}/callee`];
+  return child ? (child.name ?? variableName(graph, child)) : null;
+}
+
+/** The label shown for a block's kind: a bare variable reads `VARIABLE`, not `Opaque`. */
+export function kindLabel(graph: BlockGraph, block: Block): string {
+  return variableName(graph, block) !== null ? 'VARIABLE' : block.kind;
+}
+
+/** The nearest ancestor-or-self of `key` that is a node of `view`, or `null` when `key` lies
+ *  outside the view's subtree (i.e. beyond the focus block's frontier). */
+export function liftToView(view: BlockGraph, key: string): string | null {
+  let cur: string | null = key;
+  while (cur) {
+    if (view.blocks[cur]) return cur;
+    cur = parentKey(cur);
+  }
+  return null;
+}
+
+/**
+ * The relations that can be drawn as edges at this level, with both endpoints resolved to a node
+ * that is on screen. `from` is lifted to the view node that contains it (a capture recorded on a
+ * grandchild shows on the child). A `to` outside the view's boundary — a variable or type defined
+ * around or beside the focus — becomes an *external* node (`externals`, the target's own key)
+ * instead of being dropped, so implicit dependencies on the outside are visible. Lifted duplicates
+ * (same endpoints and category) are merged.
+ */
+export function relationEdgesInView(
+  graph: BlockGraph,
+  view: BlockGraph,
+  active?: ReadonlySet<RelationEdgeCategory>,
+): { edges: RelationEdge[]; externals: string[] } {
+  const seen = new Set<string>();
+  const externals = new Set<string>();
+  const edges: RelationEdge[] = [];
+  for (const r of graph.relations) {
+    const category = relationCategory(graph, r);
+    if (!category || (active && !active.has(category))) continue;
+    const from = liftToView(view, r.from);
+    if (!from || !graph.blocks[r.to]) continue;
+    // `null` = the target is outside the view's subtree: it becomes an external node as itself.
+    const lifted = liftToView(view, r.to);
+    // Both under the same view node (a dependency internal to it) — nothing to draw at this level.
+    if (lifted === from) continue;
+    const to = lifted ?? r.to;
+    if (!lifted) externals.add(to);
+    const id = `${from}|${to}|${category}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    edges.push({ id: `rel:${id}`, category, from, to });
+  }
+  return { edges, externals: [...externals] };
 }
 
 /**
@@ -219,7 +289,8 @@ export function oneLevel(graph: BlockGraph, focus: string): BlockGraph | null {
   if (block.body) {
     for (const child of block.body.children) {
       const childBlock = graph.blocks[child];
-      if (childBlock) {
+      // Comments carry no information the graph needs: they are left out of the view.
+      if (childBlock && childBlock.kind !== 'Comment') {
         blocks[child] = childBlock;
         scope.add(child);
       }
@@ -317,4 +388,16 @@ function utf8ByteLength(codePoint: number): number {
   if (codePoint <= 0x7ff) return 2;
   if (codePoint <= 0xffff) return 3;
   return 4;
+}
+
+/** A comment has no type: the compiler models it as a block whose value is a `char`, which the
+ *  graph must not show. Strips `type` from every `Comment` block and its ports (applied where
+ *  graphs enter the playground, so node, detail panel and diff all agree). */
+export function stripCommentTypes(graph: BlockGraph): BlockGraph {
+  for (const block of Object.values(graph.blocks)) {
+    if (block.kind !== 'Comment') continue;
+    delete block.type;
+    for (const port of [...block.inputs, ...block.outputs]) delete port.type;
+  }
+  return graph;
 }

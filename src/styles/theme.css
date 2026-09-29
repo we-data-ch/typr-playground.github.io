@@ -23,6 +23,7 @@
   --warning: #f59e0b;
 
   /* Relation edges (visualization_graph_v2.md §11 "Relations comme arêtes") */
+  --edge-ref: #3b82f6;
   --edge-capture: #8b5cf6;
   --edge-type-position: #0ea5e9;
   --edge-has-type: #d946ef;
@@ -57,6 +58,7 @@
   --error: #f87171;
   --warning: #fbbf24;
 
+  --edge-ref: #60a5fa;
   --edge-capture: #a78bfa;
   --edge-type-position: #38bdf8;
   --edge-has-type: #e879f9;

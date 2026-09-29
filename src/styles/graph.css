@@ -99,6 +99,9 @@
 .block-node.kind-type { border-left-color: var(--success); }
 .block-node.kind-control { border-left-color: var(--warning); }
 .block-node.kind-module { border-left-color: var(--text-secondary); }
+.block-node.kind-comment { border-left-color: var(--text-secondary); border-style: dashed; font-style: italic; }
+
+.block-node.external { border-style: dashed; opacity: 0.8; }
 
 .block-node-header {
   display: flex;
@@ -118,6 +121,17 @@
 .block-node-name {
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-primary);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block-node-variable {
+  padding: 0.125rem 0.5rem 0;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
