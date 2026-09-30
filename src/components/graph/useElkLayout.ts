@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 // The bundled build runs layout synchronously in the main thread — no Worker, which Vite's
 // dev/build pipeline would otherwise need special handling for.
 import ELK, { type ElkNode } from 'elkjs/lib/elk.bundled.js';
-import { liftToView, relationEdgesInView, type Block, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
+import { liftToView, relationCategory, relationEdgesInView, type Block, type BlockGraph, type RelationEdgeCategory } from '../../lib/graph';
 import { NODE_WIDTH, nodeHeight, portOffsetY } from './layout-constants';
 
 const elk = new ELK();
@@ -66,6 +66,47 @@ export function externalStub(block: Block): Block {
   return { ...block, inputs: [], body: undefined };
 }
 
+/** The relation categories mentioning each block, in one pass over the graph — a node is worth
+ *  the canvas space only if at least one *active* category points at it. */
+function categoriesByBlockKey(graph: BlockGraph): Map<string, Set<RelationEdgeCategory>> {
+  const byKey = new Map<string, Set<RelationEdgeCategory>>();
+  for (const r of graph.relations) {
+    const category = relationCategory(graph, r);
+    if (!category) continue;
+    for (const key of [r.from, r.to]) {
+      let set = byKey.get(key);
+      if (!set) byKey.set(key, (set = new Set()));
+      set.add(category);
+    }
+  }
+  return byKey;
+}
+
+/** A `TypeExpr` block only exists in a view because something's type points at it: the compiler
+ *  hangs `type:int`/`type:bool`/… off the `Program`, and a record's field types off its
+ *  `TypeDecl`. With no active category pointing at it, it is a node with no edge — pure noise on
+ *  top of the expressions, and on a phone-sized canvas more noise than the graph can spare, so it's
+ *  dropped. The type itself is not lost: every node still prints its own `type` (BlockNode).
+ *
+ *  Inside a type block those children *are* the content (`type:Person` is nothing but its two
+ *  field types), so they're kept whatever the toggles say — otherwise entering a record would
+ *  leave a lone node on the canvas. */
+function isHiddenTypeMention(
+  block: Block,
+  view: BlockGraph,
+  graph: BlockGraph,
+  categoriesByKey: Map<string, Set<RelationEdgeCategory>>,
+  active: ReadonlySet<RelationEdgeCategory>,
+): boolean {
+  if (block.kind !== 'TypeExpr') return false;
+  if (block.key === view.root) return false;
+  if (graph.blocks[view.root]?.kind && TYPE_KINDS.has(graph.blocks[view.root].kind)) return false;
+  const categories = categoriesByKey.get(block.key);
+  return !categories || ![...categories].some((c) => active.has(c));
+}
+
+const TYPE_KINDS: ReadonlySet<Block['kind']> = new Set(['TypeDecl', 'Interface', 'TypeExpr']);
+
 export function useElkLayout(
   graph: BlockGraph,
   view: BlockGraph | null,
@@ -117,7 +158,15 @@ export function useElkLayout(
     // `Program` blocks are never drawn: the root is just the container of the top-level
     // declarations, so a node for it carries no information. Their bodies (and wires) are still
     // read below; edges ending on a hidden block are dropped since `byKey` no longer has it.
-    const blocks = allBlocks.filter((b) => b.kind !== 'Program');
+    // A `TypeExpr` is dropped too when no *active* relation category points at it (see
+    // `isHiddenTypeMention`) — dropping it can't leave a dangling edge, since the edge that would
+    // have justified it is filtered out by the same active set.
+    const categoriesByKey = categoriesByBlockKey(graph);
+    const blocks = allBlocks.filter(
+      (b) =>
+        b.kind !== 'Program' &&
+        !isHiddenTypeMention(b, view, graph, categoriesByKey, activeRelationKinds),
+    );
     const byKey = new Map(blocks.map((b) => [b.key, b]));
 
     const children = blocks.map((block) => ({

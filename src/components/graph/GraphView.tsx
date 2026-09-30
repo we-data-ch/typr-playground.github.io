@@ -61,9 +61,11 @@ export function GraphView({ graph, focus, selectedKey, onSelectKey, onEnter, dif
   const view = useMemo(() => oneLevel(graph, focus), [graph, focus]);
   // Relation-edge visibility (spec §11 "Relations comme arêtes"): a session-local preference, not
   // part of the shared `view`/`focus` URL state — same reasoning as the Diff tab's baseline.
-  // Plain references are on by default (a bare `message` must visibly link to its `let`); the
-  // rest are off so the canvas stays uncluttered.
-  const [activeRelationKinds, setActiveRelationKinds] = useState<Set<RelationEdgeCategory>>(() => new Set(['ref', 'hasType']));
+  // Plain references are the only ones on by default, so the canvas starts as the code's own
+  // expressions: `HasType` off also drops the `type:*` mention nodes it points at (see
+  // `useElkLayout`), and every node still prints its own type, so nothing is lost — the extra
+  // relations and their nodes are one tap of the legend away.
+  const [activeRelationKinds, setActiveRelationKinds] = useState<Set<RelationEdgeCategory>>(() => new Set(['ref']));
   const { layout } = useElkLayout(graph, view, activeRelationKinds);
 
   function toggleRelationKind(category: RelationEdgeCategory) {
